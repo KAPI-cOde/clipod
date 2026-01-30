@@ -21,3 +21,4 @@ Commands:
 - `clipod process` — process audio (denoise, normalize, etc.).
 - `clipod mix` — mix tracks together.
 - `clipod export` — export final audio.
+- `clipod web` — launch the waveform editor; selection is saved to `src/clipod/web/selection.json`.

@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>clipod Waveform Editor</title>
+  <link rel="preconnect" href="https://unpkg.com" />
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
+  <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+      margin: 24px;
+      color: #1f2933;
+      background: #f7f9fb;
+    }
+    h1 {
+      margin-bottom: 8px;
+    }
+    .panel {
+      background: #ffffff;
+      border: 1px solid #d8e2ec;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    #waveform {
+      margin-top: 16px;
+      margin-bottom: 8px;
+    }
+    .controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    button {
+      padding: 8px 12px;
+      border: 1px solid #0d6efd;
+      background: #0d6efd;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary {
+      background: #ffffff;
+      color: #0d6efd;
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 8px;
+      font-size: 14px;
+      color: #0b5ed7;
+    }
+    .hint {
+      font-size: 13px;
+      color: #52616b;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <h1>clipod Waveform Editor</h1>
+  <p class="hint">Load an audio file, click to set start and end, then save. Selection is written to selection.json via the local server.</p>
+  <div class="panel">
+    <div class="controls">
+      <input type="file" id="fileInput" accept="audio/*" />
+      <button id="playPause" disabled>Play/Pause</button>
+      <button id="saveSelection" disabled class="secondary">Save selection</button>
+    </div>
+    <div id="waveform"></div>
+    <div id="status">Load an audio file to begin.</div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById("fileInput");
+    const playPauseBtn = document.getElementById("playPause");
+    const saveBtn = document.getElementById("saveSelection");
+    const statusEl = document.getElementById("status");
+
+    let wavesurfer = null;
+    let regions = null;
+    let selection = { start: null, end: null, file: "" };
+
+    const formatTime = (t) => `${t.toFixed(2)}s`;
+
+    const updateStatus = (text, isError = false) => {
+      statusEl.textContent = text;
+      statusEl.style.color = isError ? "#c1121f" : "#0b5ed7";
+    };
+
+    const renderSelection = () => {
+      regions && regions.clearRegions && regions.clearRegions();
+      if (selection.start !== null && selection.end !== null) {
+        const start = Math.min(selection.start, selection.end);
+        const end = Math.max(selection.start, selection.end);
+        selection.start = start;
+        selection.end = end;
+        if (regions && regions.addRegion) {
+          regions.addRegion({
+            start,
+            end,
+            color: "rgba(13, 110, 253, 0.2)",
+            drag: false,
+            resize: false,
+          });
+        }
+        updateStatus(`Selection: ${formatTime(start)} — ${formatTime(end)}. Click waveform to reset start.`);
+      } else if (selection.start !== null) {
+        updateStatus(`Start set at ${formatTime(selection.start)}. Click waveform to set end.`);
+      }
+    };
+
+    const attachWaveHandlers = () => {
+      wavesurfer.on("seek", (progress) => {
+        const duration = wavesurfer.getDuration();
+        const time = duration * progress;
+        if (selection.start === null || selection.end !== null) {
+          selection.start = time;
+          selection.end = null;
+        } else {
+          selection.end = time;
+        }
+        renderSelection();
+      });
+    };
+
+    const initWaveform = (file) => {
+      if (wavesurfer) {
+        wavesurfer.destroy();
+      }
+      regions = WaveSurfer.Regions.create();
+      wavesurfer = WaveSurfer.create({
+        container: "#waveform",
+        waveColor: "#8cc0ff",
+        progressColor: "#0d6efd",
+        cursorColor: "#0d6efd",
+        height: 180,
+        plugins: [regions],
+      });
+
+      const blobUrl = URL.createObjectURL(file);
+      selection = { start: null, end: null, file: file.name };
+
+      wavesurfer.on("ready", () => {
+        playPauseBtn.disabled = false;
+        saveBtn.disabled = false;
+        updateStatus("Click waveform to set start, then end.");
+      });
+
+      attachWaveHandlers();
+      wavesurfer.load(blobUrl);
+    };
+
+    fileInput.addEventListener("change", (evt) => {
+      const file = evt.target.files?.[0];
+      if (!file) return;
+      initWaveform(file);
+    });
+
+    // Auto-load if query param ?file=filename is provided; server must host the file in same directory.
+    const params = new URLSearchParams(window.location.search);
+    const fileParam = params.get("file");
+    if (fileParam) {
+      const autoUrl = fileParam === "auto" ? "/api/auto" : fileParam;
+      fetch(autoUrl)
+        .then((res) => {
+          if (!res.ok) throw new Error(`Failed to load ${autoUrl}`);
+          return res.blob();
+        })
+        .then((blob) => {
+          const name = fileParam === "auto" ? "loaded-audio" : fileParam;
+          const file = new File([blob], name, { type: blob.type || "audio/*" });
+          initWaveform(file);
+        })
+        .catch((err) => {
+          console.error(err);
+          updateStatus(`Auto-load failed: ${err.message}`, true);
+        });
+    }
+
+    playPauseBtn.addEventListener("click", () => {
+      if (!wavesurfer) return;
+      wavesurfer.playPause();
+      playPauseBtn.textContent = wavesurfer.isPlaying() ? "Pause" : "Play";
+    });
+
+    saveBtn.addEventListener("click", async () => {
+      if (selection.start === null || selection.end === null) {
+        updateStatus("Please set both start and end before saving.", true);
+        return;
+      }
+      try {
+        const res = await fetch("/api/save", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(selection),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `HTTP ${res.status}`);
+        }
+        updateStatus("Selection saved.");
+      } catch (err) {
+        console.error(err);
+        updateStatus(`Save failed: ${err.message}`, true);
+      }
+    });
+  </script>
+</body>
+</html>
