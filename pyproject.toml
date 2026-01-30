@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clipod"
+version = "0.1.0"
+description = "Podcast-specific CLI tool - 80% done before opening Audacity"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.1",
+    "sounddevice>=0.4",
+    "numpy>=1.26",
+]
+
+[project.scripts]
+clipod = "clipod.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
