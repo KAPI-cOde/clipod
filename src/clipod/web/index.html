@@ -8,131 +8,820 @@
   <script src="https://unpkg.com/wavesurfer.js@7/dist/wavesurfer.min.js"></script>
   <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
   <style>
+    :root {
+      color-scheme: light;
+    }
     body {
-      font-family: system-ui, -apple-system, Segoe UI, sans-serif;
-      margin: 24px;
+      margin: 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
       color: #1f2933;
       background: #f7f9fb;
     }
     h1 {
-      margin-bottom: 8px;
+      font-size: 18px;
+      margin: 0 0 12px;
+      font-weight: 600;
     }
     .panel {
       background: #ffffff;
       border: 1px solid #d8e2ec;
       border-radius: 8px;
-      padding: 16px;
+      padding: 12px 16px 16px;
       box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     }
-    #waveform {
-      margin-top: 16px;
-      margin-bottom: 8px;
+    .panel.selection-active {
+      border-color: #0d6efd;
+      box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
     }
-    .controls {
+    .top-row {
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+      gap: 12px;
       align-items: center;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #52616b;
     }
-    button {
-      padding: 8px 12px;
-      border: 1px solid #0d6efd;
-      background: #0d6efd;
-      color: white;
-      border-radius: 6px;
-      cursor: pointer;
+    .file-label {
+      font-size: 12px;
+      color: #52616b;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 60%;
+    }
+    #waveform {
+      min-width: 100%;
+    }
+    #waveformWrap {
+      margin-top: 12px;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    .zoom-indicator strong {
+      color: #1f2933;
       font-weight: 600;
     }
-    button.secondary {
+    .status-line {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 12px;
+      margin-top: 8px;
+      color: #52616b;
+    }
+    .status-line strong {
+      color: #1f2933;
+      font-weight: 600;
+    }
+    .bgm-panel {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid #e6eef5;
+    }
+    .bgm-header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      font-size: 12px;
+      color: #52616b;
+    }
+    .bgm-track-label {
+      font-weight: 600;
+      color: #1f2933;
+    }
+    #bgmTimelineWrap {
+      margin-top: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      border: 1px dashed #d8e2ec;
+      border-radius: 6px;
+      background: #f9fbfd;
+      padding: 4px 0;
+    }
+    #bgmTimeline {
+      position: relative;
+      height: 96px;
+      min-width: 100%;
+    }
+    #bgmMarkers {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 20px;
+      font-size: 10px;
+      color: #7b8794;
+      pointer-events: none;
+      z-index: 2;
+    }
+    #bgmWaveform {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+      height: 56px;
+      pointer-events: none;
+      opacity: 0.6;
+      z-index: 1;
+    }
+    .bgm-marker {
+      position: absolute;
+      top: 0;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    #bgmLane {
+      position: absolute;
+      top: 24px;
+      left: 0;
+      right: 0;
+      height: 56px;
+      z-index: 3;
+    }
+    .bgm-segment {
+      position: absolute;
+      top: 8px;
+      height: 40px;
+      border-radius: 6px;
+      background: rgba(13, 110, 253, 0.25);
+      border: 1px solid #0d6efd;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 11px;
+      color: #1f2933;
+      box-sizing: border-box;
+      user-select: none;
+      z-index: 4;
+    }
+    .bgm-segment.selected {
+      background: rgba(13, 110, 253, 0.4);
+      border-color: #084298;
+    }
+    .bgm-segment .handle {
+      position: absolute;
+      top: 0;
+      width: 8px;
+      height: 100%;
+      cursor: ew-resize;
+    }
+    .bgm-segment .handle.left {
+      left: 0;
+    }
+    .bgm-segment .handle.right {
+      right: 0;
+    }
+    .bgm-info {
+      font-size: 12px;
+      color: #52616b;
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+    .bgm-info input[type="number"] {
+      width: 72px;
+      padding: 2px 4px;
+      font-size: 12px;
+    }
+    .bgm-info input[type="range"] {
+      width: 140px;
+    }
+    .bgm-drop {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #7b8794;
+    }
+    .selection-indicator {
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #e7edf3;
+      color: #52616b;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .panel.selection-active .selection-indicator {
+      background: #0d6efd;
+      color: #ffffff;
+    }
+    #status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #0b5ed7;
+    }
+    #status.error {
+      color: #c1121f;
+    }
+    button {
+      border: 1px solid #d8e2ec;
       background: #ffffff;
-      color: #0d6efd;
+      color: #52616b;
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
     }
     button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
-    #status {
-      margin-top: 8px;
-      font-size: 14px;
-      color: #0b5ed7;
-    }
-    .hint {
-      font-size: 13px;
+    details.shortcuts {
+      margin-top: 10px;
+      font-size: 12px;
       color: #52616b;
-      margin-top: 4px;
+      max-width: 640px;
+    }
+    details.shortcuts summary {
+      cursor: pointer;
+    }
+    details.shortcuts ul {
+      margin: 8px 0 0 16px;
+      padding: 0;
+    }
+    details.shortcuts li {
+      margin-bottom: 4px;
     }
   </style>
 </head>
 <body>
-  <h1>clipod Waveform Editor</h1>
-  <p class="hint">Load an audio file, click to set start and end, then save. Selection is written to selection.json via the local server.</p>
-  <div class="panel">
-    <div class="controls">
+  <h1>clipod waveform editor</h1>
+  <div class="panel" id="editor">
+    <div class="top-row">
       <input type="file" id="fileInput" accept="audio/*" />
-      <button id="playPause" disabled>Play/Pause</button>
-      <button id="saveSelection" disabled class="secondary">Save selection</button>
+      <span class="file-label" id="fileLabel">No file loaded</span>
+      <span class="zoom-indicator">Zoom <strong id="zoomLevel">--</strong> px/s</span>
+      <button type="button" id="resetZoom" disabled>Reset Zoom</button>
     </div>
-    <div id="waveform"></div>
-    <div id="status">Load an audio file to begin.</div>
+    <div id="waveformWrap">
+      <div id="waveform"></div>
+    </div>
+    <div class="status-line">
+      <span>Time <strong id="currentTime">00:00.00</strong></span>
+      <span>Sel <strong id="selectionStart">--:--.--</strong>–<strong id="selectionEnd">--:--.--</strong></span>
+      <span>Dur <strong id="duration">--:--.--</strong></span>
+      <span class="selection-indicator" id="selectionIndicator">No selection</span>
+    </div>
+    <div id="status">Load an audio file or use ?file=auto.</div>
+    <details class="shortcuts">
+      <summary>Shortcuts</summary>
+      <ul>
+        <li><strong>Space</strong>: play/pause</li>
+        <li><strong>i</strong>/<strong>o</strong>: set selection start/end</li>
+        <li><strong>d</strong>: delete selection</li>
+        <li><strong>u</strong>: undo delete</li>
+        <li><strong>h</strong>/<strong>l</strong>: seek -/+1s</li>
+        <li><strong>H</strong>/<strong>L</strong>: seek -/+5s</li>
+        <li><strong>0</strong>/<strong>$</strong>: jump start/end</li>
+        <li><strong>[</strong>/<strong>]</strong>: jump to selection start/end</li>
+        <li><strong>Esc</strong>: clear selection</li>
+      </ul>
+    </details>
+    <div class="bgm-panel">
+      <div class="bgm-header">
+        <span class="bgm-track-label">BGM Track</span>
+        <input type="file" id="bgmInput" accept="audio/*" />
+        <button type="button" id="addBgm">Add block</button>
+        <button type="button" id="playBgm" disabled>Play BGM</button>
+        <button type="button" id="previewMix" disabled>Preview Mix</button>
+        <button type="button" id="deleteBgm" disabled>Delete BGM</button>
+        <button type="button" id="mixBgm" disabled>Mix</button>
+      </div>
+      <div class="bgm-drop">Drag & drop a BGM file onto the timeline to load it.</div>
+      <div id="bgmTimelineWrap">
+        <div id="bgmTimeline">
+          <div id="bgmMarkers"></div>
+          <div id="bgmWaveform"></div>
+          <div id="bgmLane"></div>
+        </div>
+      </div>
+      <div class="bgm-info">
+        <span>Start <strong id="bgmStart">--:--.--</strong></span>
+        <span>End <strong id="bgmEnd">--:--.--</strong></span>
+        <label>Volume <input type="range" id="bgmVolume" min="0" max="1" step="0.05" value="0.25" disabled></label>
+        <label>Fade In <input type="number" id="bgmFadeIn" min="0" step="0.1" value="3" disabled></label>
+        <label>Fade Out <input type="number" id="bgmFadeOut" min="0" step="0.1" value="3" disabled></label>
+      </div>
+    </div>
   </div>
 
   <script>
     const fileInput = document.getElementById("fileInput");
-    const playPauseBtn = document.getElementById("playPause");
-    const saveBtn = document.getElementById("saveSelection");
+    const fileLabel = document.getElementById("fileLabel");
     const statusEl = document.getElementById("status");
+    const currentTimeEl = document.getElementById("currentTime");
+    const durationEl = document.getElementById("duration");
+    const selectionStartEl = document.getElementById("selectionStart");
+    const selectionEndEl = document.getElementById("selectionEnd");
+    const selectionIndicatorEl = document.getElementById("selectionIndicator");
+    const editorEl = document.getElementById("editor");
+    const zoomLevelEl = document.getElementById("zoomLevel");
+    const resetZoomBtn = document.getElementById("resetZoom");
+    const waveformWrap = document.getElementById("waveformWrap");
+    const bgmTimelineWrap = document.getElementById("bgmTimelineWrap");
+    const bgmTimeline = document.getElementById("bgmTimeline");
+    const bgmLane = document.getElementById("bgmLane");
+    const bgmMarkers = document.getElementById("bgmMarkers");
+    const bgmWaveformEl = document.getElementById("bgmWaveform");
+    const bgmInput = document.getElementById("bgmInput");
+    const addBgmBtn = document.getElementById("addBgm");
+    const playBgmBtn = document.getElementById("playBgm");
+    const previewMixBtn = document.getElementById("previewMix");
+    const deleteBgmBtn = document.getElementById("deleteBgm");
+    const mixBgmBtn = document.getElementById("mixBgm");
+    const bgmStartEl = document.getElementById("bgmStart");
+    const bgmEndEl = document.getElementById("bgmEnd");
+    const bgmVolumeEl = document.getElementById("bgmVolume");
+    const bgmFadeInEl = document.getElementById("bgmFadeIn");
+    const bgmFadeOutEl = document.getElementById("bgmFadeOut");
 
     let wavesurfer = null;
     let regions = null;
-    let selection = { start: null, end: null, file: "" };
+    let activeRegion = null;
+    let selection = { start: null, end: null };
+    let activeObjectUrl = null;
+    let autoMode = false;
+    let pendingSeekTime = null;
+    let pendingPlay = false;
+    let busy = false;
+    let zoomBase = 1;
+    let zoomLevel = 1;
+    let timelinePxPerSec = 1;
+    let bgmSegments = [];
+    let selectedBgmId = null;
+    let bgmIdCounter = 1;
+    let dragState = null;
+    let syncingScroll = false;
+    let bgmFile = null;
+    let bgmUploadPath = null;
+    let bgmDuration = 0;
+    let bgmObjectUrl = null;
+    let bgmWaveSurfer = null;
+    let bgmPreview = null;
+    let previewContext = null;
+    let previewMainBuffer = null;
+    let previewBgmBuffer = null;
+    let previewSources = [];
+    let previewGain = null;
+    let previewPlaying = false;
+    const bgmDefaultVolume = 0.25;
+    const bgmDefaultFade = 3;
 
-    const formatTime = (t) => `${t.toFixed(2)}s`;
+    const formatSeconds = (value) => {
+      if (value === null || Number.isNaN(value)) {
+        return "--:--.--";
+      }
+      const minutes = Math.floor(value / 60);
+      const seconds = Math.floor(value % 60);
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    };
+
+    const formatTime = (value) => {
+      if (value === null || Number.isNaN(value)) {
+        return "--:--.--";
+      }
+      const minutes = Math.floor(value / 60);
+      const seconds = Math.floor(value % 60);
+      const ms = Math.floor((value - Math.floor(value)) * 100);
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
+    };
 
     const updateStatus = (text, isError = false) => {
       statusEl.textContent = text;
-      statusEl.style.color = isError ? "#c1121f" : "#0b5ed7";
+      statusEl.classList.toggle("error", isError);
     };
 
-    const renderSelection = () => {
-      regions && regions.clearRegions && regions.clearRegions();
+    const updateSelectionUI = () => {
+      selectionStartEl.textContent = selection.start === null ? "--:--.--" : formatTime(selection.start);
+      selectionEndEl.textContent = selection.end === null ? "--:--.--" : formatTime(selection.end);
+      const hasSelection = selection.start !== null && selection.end !== null;
+      editorEl.classList.toggle("selection-active", hasSelection);
+      selectionIndicatorEl.textContent = hasSelection ? "Selection active" : "No selection";
+    };
+
+    const updateZoomUI = () => {
+      zoomLevelEl.textContent = `${Math.round(zoomLevel)}`;
+      resetZoomBtn.disabled = zoomLevel === zoomBase;
+    };
+
+    const applyZoom = (value) => {
+      if (!wavesurfer) return;
+      zoomLevel = Math.max(1, value);
+      wavesurfer.zoom(zoomLevel);
+      updateZoomUI();
+      updateTimelineScale();
+    };
+
+    const resetZoom = () => {
+      applyZoom(zoomBase);
+      waveformWrap.scrollLeft = 0;
+      bgmTimelineWrap.scrollLeft = 0;
+    };
+
+    const updateTimelineScale = () => {
+      const duration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
+      if (!duration) return;
+      timelinePxPerSec = zoomLevel;
+      const width = Math.max(waveformWrap.clientWidth, duration * timelinePxPerSec);
+      bgmTimeline.style.width = `${width}px`;
+      renderMarkers(duration);
+      renderBgmSegments(false);
+      updateBgmWaveformWidth();
+      if (bgmWaveSurfer) {
+        bgmWaveSurfer.zoom(zoomLevel);
+      }
+    };
+
+    const renderMarkers = (duration) => {
+      bgmMarkers.innerHTML = "";
+      if (!duration) return;
+      const step = duration <= 60 ? 10 : duration <= 300 ? 30 : 60;
+      for (let t = 0; t <= duration; t += step) {
+        const marker = document.createElement("div");
+        marker.className = "bgm-marker";
+        marker.style.left = `${t * timelinePxPerSec}px`;
+        marker.textContent = formatSeconds(t);
+        bgmMarkers.appendChild(marker);
+      }
+    };
+
+    const layoutToJson = () => ({
+      version: 1,
+      segments: bgmSegments.map((segment) => ({
+        file: segment.file,
+        name: segment.name,
+        start: segment.start,
+        end: segment.end,
+        offset: segment.offset,
+        volume: segment.volume,
+        fade_in: segment.fadeIn,
+        fade_out: segment.fadeOut,
+      })),
+    });
+
+    const persistLayout = async () => {
+      try {
+        if (!bgmUploadPath) {
+          return;
+        }
+        await fetch("/api/bgm/layout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(layoutToJson()),
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    const selectBgm = (id) => {
+      selectedBgmId = id;
+      document.querySelectorAll(".bgm-segment").forEach((el) => {
+        el.classList.toggle("selected", el.dataset.id === String(id));
+      });
+      const segment = bgmSegments.find((item) => item.id === id);
+      if (!segment) {
+        bgmStartEl.textContent = "--:--.--";
+        bgmEndEl.textContent = "--:--.--";
+        bgmVolumeEl.disabled = true;
+        bgmFadeInEl.disabled = true;
+        bgmFadeOutEl.disabled = true;
+        deleteBgmBtn.disabled = true;
+        updateMixAvailability();
+        return;
+      }
+      bgmStartEl.textContent = formatTime(segment.start);
+      bgmEndEl.textContent = formatTime(segment.end);
+      bgmVolumeEl.value = segment.volume;
+      bgmFadeInEl.value = segment.fadeIn;
+      bgmFadeOutEl.value = segment.fadeOut;
+      bgmVolumeEl.disabled = false;
+      bgmFadeInEl.disabled = false;
+      bgmFadeOutEl.disabled = false;
+      deleteBgmBtn.disabled = false;
+      updateMixAvailability();
+      persistLayout();
+    };
+
+    const renderBgmSegments = (persist = true) => {
+      bgmLane.innerHTML = "";
+      bgmSegments.forEach((segment) => {
+        const el = document.createElement("div");
+        el.className = "bgm-segment";
+        if (segment.id === selectedBgmId) {
+          el.classList.add("selected");
+        }
+        el.dataset.id = segment.id;
+        const left = segment.start * timelinePxPerSec;
+        const width = Math.max(24, (segment.end - segment.start) * timelinePxPerSec);
+        el.style.left = `${left}px`;
+        el.style.width = `${width}px`;
+        el.textContent = segment.name;
+        segment.element = el;
+        const leftHandle = document.createElement("span");
+        leftHandle.className = "handle left";
+        leftHandle.dataset.handle = "left";
+        const rightHandle = document.createElement("span");
+        rightHandle.className = "handle right";
+        rightHandle.dataset.handle = "right";
+        el.appendChild(leftHandle);
+        el.appendChild(rightHandle);
+        el.addEventListener("mousedown", (event) => startDrag(event, segment, el));
+        el.addEventListener("click", (event) => {
+          event.stopPropagation();
+          selectBgm(segment.id);
+        });
+        bgmLane.appendChild(el);
+      });
+      updateMixAvailability();
+      if (bgmSegments.find((item) => item.id === selectedBgmId)) {
+        selectBgm(selectedBgmId);
+      } else {
+        selectBgm(null);
+      }
+      if (persist) {
+        persistLayout();
+      }
+    };
+
+    const startDrag = (event, segment, element) => {
+      event.preventDefault();
+      const handle = event.target.dataset.handle || "move";
+      const startX = event.clientX;
+      const originalStart = segment.start;
+      const originalEnd = segment.end;
+      const originalOffset = segment.offset;
+      dragState = { segment, handle, startX, originalStart, originalEnd, originalOffset };
+      element.style.cursor = "grabbing";
+      document.addEventListener("mousemove", onDragMove);
+      document.addEventListener("mouseup", onDragEnd);
+    };
+
+    const onDragMove = (event) => {
+      if (!dragState) return;
+      const delta = (event.clientX - dragState.startX) / timelinePxPerSec;
+      const segment = dragState.segment;
+      const minLength = 0.1;
+      const mainDuration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
+      if (dragState.handle === "left") {
+        let end = dragState.originalEnd;
+        if (mainDuration) {
+          end = Math.min(end, mainDuration);
+        }
+        let nextStart = dragState.originalStart + delta;
+        nextStart = Math.max(0, Math.min(nextStart, end - minLength));
+        let nextOffset = dragState.originalOffset + (nextStart - dragState.originalStart);
+        if (nextOffset < 0) {
+          nextOffset = 0;
+        }
+        let nextLength = end - nextStart;
+        const maxLength = Math.max(minLength, segment.duration - nextOffset);
+        if (nextLength > maxLength) {
+          nextLength = maxLength;
+          nextStart = end - nextLength;
+          nextOffset = dragState.originalOffset + (nextStart - dragState.originalStart);
+        }
+        segment.start = nextStart;
+        segment.end = end;
+        segment.offset = Math.max(0, nextOffset);
+      } else if (dragState.handle === "right") {
+        const maxEndByFile = dragState.originalStart + (segment.duration - dragState.originalOffset);
+        let maxEnd = maxEndByFile;
+        if (mainDuration) {
+          maxEnd = Math.min(maxEnd, mainDuration);
+        }
+        const nextEnd = Math.min(
+          Math.max(dragState.originalStart + minLength, dragState.originalEnd + delta),
+          maxEnd
+        );
+        segment.end = nextEnd;
+        segment.offset = dragState.originalOffset;
+      } else {
+        const duration = dragState.originalEnd - dragState.originalStart;
+        let maxStart = Infinity;
+        if (mainDuration) {
+          maxStart = Math.max(0, mainDuration - duration);
+        }
+        const nextStart = Math.max(0, Math.min(dragState.originalStart + delta, maxStart));
+        segment.start = nextStart;
+        segment.end = nextStart + duration;
+        segment.offset = dragState.originalOffset;
+      }
+      if (segment.end < segment.start + minLength) {
+        segment.end = segment.start + minLength;
+      }
+      renderBgmSegments(false);
+    };
+
+    const onDragEnd = () => {
+      if (!dragState) return;
+      dragState = null;
+      document.removeEventListener("mousemove", onDragMove);
+      document.removeEventListener("mouseup", onDragEnd);
+      renderBgmSegments(true);
+    };
+
+    const addBgmSegment = (file) => {
+      const now = wavesurfer ? wavesurfer.getCurrentTime() : 0;
+      const duration = file.duration || 1;
+      const mainDuration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
+      const minLength = 0.1;
+      let start = now;
+      let end = now + Math.min(duration, 10);
+      if (mainDuration) {
+        if (start > mainDuration - minLength) {
+          start = Math.max(0, mainDuration - minLength);
+        }
+        end = Math.min(start + Math.min(duration, 10), mainDuration);
+      }
+      if (end < start + minLength) {
+        end = start + minLength;
+      }
+      const segment = {
+        id: bgmIdCounter++,
+        file: file.file,
+        name: file.name,
+        start,
+        end,
+        offset: 0,
+        duration,
+        volume: bgmDefaultVolume,
+        fadeIn: bgmDefaultFade,
+        fadeOut: bgmDefaultFade,
+      };
+      bgmSegments.push(segment);
+      renderBgmSegments();
+      selectBgm(segment.id);
+    };
+
+    const initBgmWaveform = (file) => {
+      if (bgmWaveSurfer) {
+        bgmWaveSurfer.destroy();
+      }
+      if (bgmObjectUrl) {
+        URL.revokeObjectURL(bgmObjectUrl);
+      }
+      if (bgmPreview) {
+        bgmPreview.pause();
+        bgmPreview = null;
+        playBgmBtn.textContent = "Play BGM";
+      }
+      updateBgmWaveformWidth();
+      bgmObjectUrl = URL.createObjectURL(file);
+      bgmPreview = new Audio(bgmObjectUrl);
+      bgmPreview.loop = true;
+      bgmWaveSurfer = WaveSurfer.create({
+        container: "#bgmWaveform",
+        waveColor: "#adcdfc",
+        progressColor: "#7eb0f7",
+        cursorColor: "transparent",
+        height: 56,
+        normalize: true,
+        interact: false,
+      });
+      bgmWaveSurfer.on("ready", () => {
+        bgmWaveSurfer.zoom(zoomLevel);
+      });
+      bgmWaveSurfer.load(bgmObjectUrl);
+      updateBgmPlaybackAvailability();
+      updatePreviewAvailability();
+    };
+
+    const updateMixAvailability = () => {
+      mixBgmBtn.disabled = !autoMode || bgmSegments.length === 0 || !bgmFile;
+    };
+
+    const updateBgmPlaybackAvailability = () => {
+      playBgmBtn.disabled = !bgmPreview;
+    };
+
+    const updatePreviewAvailability = () => {
+      previewMixBtn.disabled = !wavesurfer || !bgmFile || bgmSegments.length === 0;
+    };
+
+    const updatePreviewAvailability = () => {
+      previewMixBtn.disabled = !wavesurfer || !bgmFile || bgmSegments.length === 0;
+    };
+
+    const updateBgmWaveformWidth = () => {
+      if (!bgmWaveformEl) return;
+      if (!bgmDuration) {
+        bgmWaveformEl.style.width = "0px";
+        return;
+      }
+      bgmWaveformEl.style.width = `${bgmDuration * timelinePxPerSec}px`;
+    };
+
+    const ensureBgmUpload = async () => {
+      if (!bgmFile) {
+        throw new Error("No BGM file loaded.");
+      }
+      if (bgmUploadPath) return bgmUploadPath;
+      const uploaded = await uploadBgmFile(bgmFile);
+      bgmUploadPath = uploaded.file;
+      bgmSegments.forEach((segment) => {
+        segment.file = bgmUploadPath;
+      });
+      return bgmUploadPath;
+    };
+
+    const uploadBgmFile = async (file) => {
+      const res = await fetch("/api/bgm/upload", {
+        method: "POST",
+        headers: { "X-File-Name": encodeURIComponent(file.name) },
+        body: file,
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Upload failed (${res.status})`);
+      }
+      return res.json();
+    };
+
+    const readDuration = (file) => new Promise((resolve, reject) => {
+      const audio = document.createElement("audio");
+      const tempUrl = URL.createObjectURL(file);
+      audio.preload = "metadata";
+      audio.onloadedmetadata = () => {
+        URL.revokeObjectURL(tempUrl);
+        resolve(audio.duration || 0);
+      };
+      audio.onerror = () => {
+        URL.revokeObjectURL(tempUrl);
+        reject(new Error("Failed to read audio metadata"));
+      };
+      audio.src = tempUrl;
+    });
+
+    const clearSelection = () => {
+      selection = { start: null, end: null };
+      if (activeRegion) {
+        activeRegion.remove();
+        activeRegion = null;
+      }
+      updateSelectionUI();
+    };
+
+    const setSelectionPoint = (point, time) => {
+      selection[point] = time;
       if (selection.start !== null && selection.end !== null) {
         const start = Math.min(selection.start, selection.end);
         const end = Math.max(selection.start, selection.end);
-        selection.start = start;
-        selection.end = end;
-        if (regions && regions.addRegion) {
-          regions.addRegion({
-            start,
-            end,
-            color: "rgba(13, 110, 253, 0.2)",
-            drag: false,
-            resize: false,
-          });
+        selection = { start, end };
+        if (activeRegion) {
+          activeRegion.remove();
         }
-        updateStatus(`Selection: ${formatTime(start)} — ${formatTime(end)}. Click waveform to reset start.`);
-      } else if (selection.start !== null) {
-        updateStatus(`Start set at ${formatTime(selection.start)}. Click waveform to set end.`);
+        activeRegion = regions.addRegion({
+          start,
+          end,
+          color: "rgba(13, 110, 253, 0.25)",
+          drag: true,
+          resize: true,
+        });
       }
+      updateSelectionUI();
     };
 
-    const attachWaveHandlers = () => {
-      wavesurfer.on("seek", (progress) => {
-        const duration = wavesurfer.getDuration();
-        const time = duration * progress;
-        if (selection.start === null || selection.end !== null) {
-          selection.start = time;
-          selection.end = null;
-        } else {
-          selection.end = time;
-        }
-        renderSelection();
-      });
+    const clampTime = (time) => {
+      if (!wavesurfer) return 0;
+      const duration = wavesurfer.getDuration() || 0;
+      return Math.max(0, Math.min(time, duration));
     };
 
-    const initWaveform = (file) => {
+    const seekToTime = (time) => {
+      if (!wavesurfer) return;
+      const duration = wavesurfer.getDuration() || 0;
+      if (!duration) return;
+      const clamped = clampTime(time);
+      wavesurfer.seekTo(clamped / duration);
+    };
+
+    const seekBy = (delta) => {
+      if (!wavesurfer) return;
+      const current = wavesurfer.getCurrentTime();
+      seekToTime(current + delta);
+    };
+
+    const initWaveform = (blob, label, isAuto) => {
       if (wavesurfer) {
         wavesurfer.destroy();
       }
+      if (activeObjectUrl) {
+        URL.revokeObjectURL(activeObjectUrl);
+      }
+      autoMode = isAuto;
+      fileLabel.textContent = label || (isAuto ? "auto" : "Loaded file");
+      selection = { start: null, end: null };
+      activeRegion = null;
+      updateSelectionUI();
+      zoomLevel = 1;
+      zoomBase = 1;
+      zoomLevelEl.textContent = "--";
+      resetZoomBtn.disabled = true;
+
       regions = WaveSurfer.Regions.create();
       wavesurfer = WaveSurfer.create({
         container: "#waveform",
@@ -140,76 +829,564 @@
         progressColor: "#0d6efd",
         cursorColor: "#0d6efd",
         height: 180,
+        normalize: true,
         plugins: [regions],
       });
 
-      const blobUrl = URL.createObjectURL(file);
-      selection = { start: null, end: null, file: file.name };
-
       wavesurfer.on("ready", () => {
-        playPauseBtn.disabled = false;
-        saveBtn.disabled = false;
-        updateStatus("Click waveform to set start, then end.");
+        durationEl.textContent = formatTime(wavesurfer.getDuration());
+        currentTimeEl.textContent = formatTime(0);
+        const duration = wavesurfer.getDuration() || 1;
+        const wrapWidth = waveformWrap.clientWidth || 1;
+        zoomBase = Math.max(1, Math.floor(wrapWidth / duration));
+        applyZoom(zoomBase);
+        updateTimelineScale();
+        const message = autoMode
+          ? "Ready. Use Space to play, i/o to set selection, d to delete."
+          : "Ready. Use Space to play and i/o to set selection.";
+        updateStatus(message);
+        if (pendingSeekTime !== null) {
+          seekToTime(pendingSeekTime);
+          pendingSeekTime = null;
+        }
+        if (pendingPlay) {
+          wavesurfer.play();
+          pendingPlay = false;
+        }
+        updatePreviewAvailability();
       });
 
-      attachWaveHandlers();
-      wavesurfer.load(blobUrl);
+      wavesurfer.on("timeupdate", (time) => {
+        currentTimeEl.textContent = formatTime(time);
+      });
+
+      wavesurfer.on("seek", (progress) => {
+        const duration = wavesurfer.getDuration() || 0;
+        currentTimeEl.textContent = formatTime(duration * progress);
+      });
+
+      wavesurfer.on("finish", () => {
+        currentTimeEl.textContent = formatTime(wavesurfer.getDuration());
+      });
+
+      regions.enableDragSelection({
+        color: "rgba(13, 110, 253, 0.25)",
+      });
+
+      regions.on("region-created", (region) => {
+        if (activeRegion && activeRegion.id !== region.id) {
+          activeRegion.remove();
+        }
+        activeRegion = region;
+        activeRegion.setOptions({ drag: true, resize: true });
+        selection = { start: region.start, end: region.end };
+        updateSelectionUI();
+      });
+
+      regions.on("region-updated", (region) => {
+        if (!activeRegion || activeRegion.id !== region.id) return;
+        selection = { start: region.start, end: region.end };
+        updateSelectionUI();
+      });
+
+      regions.on("region-removed", (region) => {
+        if (activeRegion && activeRegion.id === region.id) {
+          activeRegion = null;
+          selection = { start: null, end: null };
+          updateSelectionUI();
+        }
+      });
+
+      activeObjectUrl = URL.createObjectURL(blob);
+      wavesurfer.load(activeObjectUrl);
     };
 
-    fileInput.addEventListener("change", (evt) => {
-      const file = evt.target.files?.[0];
-      if (!file) return;
-      initWaveform(file);
-    });
+    const loadFromUrl = async (url, label, isAuto, seekTime = null, play = false) => {
+      try {
+        updateStatus("Loading audio...");
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) {
+          throw new Error(`Failed to load ${url}`);
+        }
+        const blob = await res.blob();
+        pendingSeekTime = seekTime;
+        pendingPlay = play;
+        initWaveform(blob, label, isAuto);
+      } catch (err) {
+        console.error(err);
+        updateStatus(`Load failed: ${err.message}`, true);
+      }
+    };
 
-    // Auto-load if query param ?file=filename is provided; server must host the file in same directory.
-    const params = new URLSearchParams(window.location.search);
-    const fileParam = params.get("file");
-    if (fileParam) {
-      const autoUrl = fileParam === "auto" ? "/api/auto" : fileParam;
-      fetch(autoUrl)
-        .then((res) => {
-          if (!res.ok) throw new Error(`Failed to load ${autoUrl}`);
-          return res.blob();
-        })
-        .then((blob) => {
-          const name = fileParam === "auto" ? "loaded-audio" : fileParam;
-          const file = new File([blob], name, { type: blob.type || "audio/*" });
-          initWaveform(file);
-        })
-        .catch((err) => {
-          console.error(err);
-          updateStatus(`Auto-load failed: ${err.message}`, true);
-        });
-    }
-
-    playPauseBtn.addEventListener("click", () => {
-      if (!wavesurfer) return;
-      wavesurfer.playPause();
-      playPauseBtn.textContent = wavesurfer.isPlaying() ? "Pause" : "Play";
-    });
-
-    saveBtn.addEventListener("click", async () => {
-      if (selection.start === null || selection.end === null) {
-        updateStatus("Please set both start and end before saving.", true);
+    const reloadAuto = async (seekTime, play) => {
+      if (!autoMode) {
+        updateStatus("Delete/undo requires ?file=auto.", true);
         return;
       }
+      const cacheBust = `/api/auto?ts=${Date.now()}`;
+      await loadFromUrl(cacheBust, "auto", true, seekTime, play);
+    };
+
+    const deleteSelection = async () => {
+      if (busy) return;
+      if (!selection.start && selection.start !== 0 || selection.end === null) {
+        updateStatus("No selection to delete.", true);
+        return;
+      }
+      if (!autoMode) {
+        updateStatus("Delete only works with ?file=auto.", true);
+        return;
+      }
+      const start = selection.start;
+      const end = selection.end;
+      const duration = end - start;
+      if (duration <= 0) {
+        updateStatus("Invalid selection.", true);
+        return;
+      }
+      const currentTime = wavesurfer.getCurrentTime();
+      const wasPlaying = wavesurfer.isPlaying();
+      let targetTime = currentTime;
+      if (currentTime > end) {
+        targetTime = currentTime - duration;
+      } else if (currentTime >= start && currentTime <= end) {
+        targetTime = start;
+      }
+      busy = true;
+      wavesurfer.pause();
+      updateStatus("Deleting selection...");
       try {
-        const res = await fetch("/api/save", {
+        const res = await fetch("/api/delete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(selection),
+          body: JSON.stringify({ start, end }),
         });
         if (!res.ok) {
           const text = await res.text();
           throw new Error(text || `HTTP ${res.status}`);
         }
-        updateStatus("Selection saved.");
+        clearSelection();
+        await reloadAuto(targetTime, wasPlaying);
+        updateStatus("Deleted selection.");
       } catch (err) {
         console.error(err);
-        updateStatus(`Save failed: ${err.message}`, true);
+        updateStatus(`Delete failed: ${err.message}`, true);
+      } finally {
+        busy = false;
+      }
+    };
+
+    const undoDelete = async () => {
+      if (busy) return;
+      if (!autoMode) {
+        updateStatus("Undo only works with ?file=auto.", true);
+        return;
+      }
+      const currentTime = wavesurfer.getCurrentTime();
+      const wasPlaying = wavesurfer.isPlaying();
+      busy = true;
+      wavesurfer.pause();
+      updateStatus("Restoring previous audio...");
+      try {
+        const res = await fetch("/api/undo", { method: "POST" });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `HTTP ${res.status}`);
+        }
+        clearSelection();
+        await reloadAuto(currentTime, wasPlaying);
+        updateStatus("Undo complete.");
+      } catch (err) {
+        console.error(err);
+        updateStatus(`Undo failed: ${err.message}`, true);
+      } finally {
+        busy = false;
+      }
+    };
+
+    fileInput.addEventListener("change", (evt) => {
+      const file = evt.target.files?.[0];
+      if (!file) return;
+      initWaveform(file, file.name, false);
+    });
+
+    resetZoomBtn.addEventListener("click", () => {
+      if (!wavesurfer) return;
+      resetZoom();
+    });
+
+    waveformWrap.addEventListener("wheel", (event) => {
+      if (!wavesurfer) return;
+      event.preventDefault();
+      const direction = event.deltaY < 0 ? 1 : -1;
+      const step = Math.max(5, Math.round(zoomLevel * 0.1));
+      const next = Math.max(zoomBase, zoomLevel + direction * step);
+      applyZoom(next);
+    }, { passive: false });
+
+    waveformWrap.addEventListener("scroll", () => {
+      if (syncingScroll) return;
+      syncingScroll = true;
+      bgmTimelineWrap.scrollLeft = waveformWrap.scrollLeft;
+      syncingScroll = false;
+    });
+
+    bgmTimelineWrap.addEventListener("scroll", () => {
+      if (syncingScroll) return;
+      syncingScroll = true;
+      waveformWrap.scrollLeft = bgmTimelineWrap.scrollLeft;
+      syncingScroll = false;
+    });
+
+    bgmTimelineWrap.addEventListener("click", () => {
+      selectBgm(null);
+    });
+
+    bgmVolumeEl.addEventListener("input", () => {
+      const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+      if (!segment) return;
+      segment.volume = parseFloat(bgmVolumeEl.value);
+      if (bgmPreview) {
+        bgmPreview.volume = segment.volume;
+      }
+      if (previewGain) {
+        previewGain.gain.value = segment.volume;
+      }
+      persistLayout();
+    });
+
+    bgmFadeInEl.addEventListener("change", () => {
+      const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+      if (!segment) return;
+      segment.fadeIn = Math.max(0, parseFloat(bgmFadeInEl.value || 0));
+      persistLayout();
+    });
+
+    bgmFadeOutEl.addEventListener("change", () => {
+      const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+      if (!segment) return;
+      segment.fadeOut = Math.max(0, parseFloat(bgmFadeOutEl.value || 0));
+      persistLayout();
+    });
+
+    const deleteSelectedBgm = () => {
+      if (selectedBgmId === null) return false;
+      bgmSegments = bgmSegments.filter((item) => item.id !== selectedBgmId);
+      selectedBgmId = null;
+      renderBgmSegments();
+      updatePreviewAvailability();
+      return true;
+    };
+
+    const stopPreviewMix = () => {
+      previewSources.forEach((source) => {
+        try {
+          source.stop(0);
+        } catch (err) {
+          // ignore
+        }
+      });
+      previewSources = [];
+      previewPlaying = false;
+      previewMixBtn.textContent = "Preview Mix";
+    };
+
+    const loadPreviewBuffers = async () => {
+      if (!previewContext) {
+        previewContext = new AudioContext();
+      }
+      if (!previewMainBuffer) {
+        if (activeObjectUrl) {
+          const mainRes = await fetch(activeObjectUrl);
+          const mainData = await mainRes.arrayBuffer();
+          previewMainBuffer = await previewContext.decodeAudioData(mainData.slice(0));
+        } else if (autoMode) {
+          const mainRes = await fetch("/api/auto?ts=" + Date.now(), { cache: "no-store" });
+          const mainData = await mainRes.arrayBuffer();
+          previewMainBuffer = await previewContext.decodeAudioData(mainData.slice(0));
+        }
+      }
+      if (!previewBgmBuffer && bgmFile) {
+        const bgmData = await bgmFile.arrayBuffer();
+        previewBgmBuffer = await previewContext.decodeAudioData(bgmData.slice(0));
+      }
+    };
+
+    const startPreviewMix = async () => {
+      await loadPreviewBuffers();
+      if (!previewMainBuffer || !previewBgmBuffer) {
+        updateStatus("Preview requires main audio and BGM loaded.", true);
+        return;
+      }
+      stopPreviewMix();
+      previewGain = previewContext.createGain();
+      previewGain.gain.value = parseFloat(bgmVolumeEl.value || 0);
+      previewGain.connect(previewContext.destination);
+      const mainSource = previewContext.createBufferSource();
+      mainSource.buffer = previewMainBuffer;
+      mainSource.connect(previewContext.destination);
+      previewSources.push(mainSource);
+      bgmSegments.forEach((segment) => {
+        const duration = Math.max(0, segment.end - segment.start);
+        if (!duration) return;
+        const bgmSource = previewContext.createBufferSource();
+        bgmSource.buffer = previewBgmBuffer;
+        bgmSource.connect(previewGain);
+        const offset = Math.max(0, segment.offset);
+        bgmSource.start(previewContext.currentTime + segment.start, offset, duration);
+        previewSources.push(bgmSource);
+      });
+      mainSource.start();
+      previewPlaying = true;
+      previewMixBtn.textContent = "Stop Preview";
+    };
+
+    previewMixBtn.addEventListener("click", async () => {
+      if (previewPlaying) {
+        stopPreviewMix();
+        return;
+      }
+      try {
+        await startPreviewMix();
+      } catch (err) {
+        console.error(err);
+        updateStatus("Preview mix failed.", true);
       }
     });
+
+    playBgmBtn.addEventListener("click", () => {
+      if (!bgmPreview) return;
+      if (bgmPreview.paused) {
+        bgmPreview.volume = parseFloat(bgmVolumeEl.value || 0);
+        bgmPreview.play().catch((err) => {
+          console.error(err);
+          updateStatus("BGM playback failed.", true);
+        });
+        playBgmBtn.textContent = "Stop BGM";
+      } else {
+        bgmPreview.pause();
+        bgmPreview.currentTime = 0;
+        playBgmBtn.textContent = "Play BGM";
+      }
+    });
+
+    deleteBgmBtn.addEventListener("click", () => {
+      deleteSelectedBgm();
+    });
+
+    mixBgmBtn.addEventListener("click", async () => {
+      if (!autoMode) {
+        updateStatus("Mix requires ?file=auto.", true);
+        return;
+      }
+      if (!bgmFile) {
+        updateStatus("Load a BGM file first.", true);
+        return;
+      }
+      updateStatus("Mixing BGM...");
+      try {
+        await ensureBgmUpload();
+        const segments = bgmSegments
+          .filter((segment) => (segment.end - segment.start) > 0)
+          .map((segment) => ({
+            ...segment,
+            file: segment.file || bgmUploadPath,
+            offset: Math.max(0, segment.offset),
+            volume: Number(segment.volume) || bgmDefaultVolume,
+            fadeIn: Number(segment.fadeIn) || bgmDefaultFade,
+            fadeOut: Number(segment.fadeOut) || bgmDefaultFade,
+          }));
+        if (segments.length === 0) {
+          throw new Error("No valid BGM segments to mix.");
+        }
+        const layout = {
+          version: 1,
+          segments: segments.map((segment) => ({
+            file: segment.file,
+            name: segment.name,
+            start: segment.start,
+            end: segment.end,
+            offset: segment.offset,
+            volume: segment.volume,
+            fade_in: segment.fadeIn,
+            fade_out: segment.fadeOut,
+          })),
+        };
+        const res = await fetch("/api/bgm/layout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(layout),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || `Layout save failed (${res.status})`);
+        }
+        const mixRes = await fetch("/api/mix", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ output: "mixed.wav" }),
+        });
+        if (!mixRes.ok) {
+          const text = await mixRes.text();
+          throw new Error(text || `Mix failed (${mixRes.status})`);
+        }
+        const output = await mixRes.json();
+        const outputName = output.output ? output.output.split("/").pop() : "mixed.wav";
+        updateStatus(`Mix complete. Output: ${outputName}`);
+      } catch (err) {
+        console.error(err);
+        updateStatus(`Mix failed: ${err.message}`, true);
+      }
+    });
+
+    const handleBgmFile = async (file) => {
+      updateStatus("Loading BGM...");
+      try {
+        const duration = await readDuration(file);
+        bgmFile = file;
+        bgmUploadPath = null;
+        bgmDuration = duration;
+        initBgmWaveform(file);
+        addBgmSegment({ name: file.name, duration, file: null });
+        updateMixAvailability();
+        updateBgmPlaybackAvailability();
+        updatePreviewAvailability();
+        updateStatus("BGM loaded.");
+      } catch (err) {
+        console.error(err);
+        updateStatus(`BGM load failed: ${err.message}`, true);
+      }
+    };
+
+    addBgmBtn.addEventListener("click", () => {
+      if (!bgmFile) {
+        updateStatus("Load a BGM file first.", true);
+        return;
+      }
+      const duration = bgmDuration || (bgmWaveSurfer ? bgmWaveSurfer.getDuration() || 0 : 0);
+      addBgmSegment({ name: bgmFile.name, duration, file: bgmUploadPath });
+      updateStatus("BGM block added.");
+    });
+
+    bgmInput.addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      await handleBgmFile(file);
+      bgmInput.value = "";
+    });
+
+    bgmTimelineWrap.addEventListener("dragover", (event) => {
+      event.preventDefault();
+    });
+
+    bgmTimelineWrap.addEventListener("drop", async (event) => {
+      event.preventDefault();
+      const file = event.dataTransfer?.files?.[0];
+      if (!file) return;
+      await handleBgmFile(file);
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (!wavesurfer) return;
+      if (event.target && event.target.tagName === "INPUT") return;
+      const key = event.key;
+      const current = wavesurfer.getCurrentTime();
+      if (key === " ") {
+        event.preventDefault();
+        wavesurfer.playPause();
+        return;
+      }
+      if (key === "i") {
+        event.preventDefault();
+        setSelectionPoint("start", current);
+        return;
+      }
+      if (key === "o") {
+        event.preventDefault();
+        setSelectionPoint("end", current);
+        return;
+      }
+      if (key === "d") {
+        event.preventDefault();
+        console.log("keydown d", { selectedBgmId, selection });
+        if (selectedBgmId !== null) {
+          deleteSelectedBgm();
+          return;
+        }
+        if (selection.start !== null && selection.end !== null) {
+          deleteSelection();
+          return;
+        }
+        updateStatus("No selection to delete.", true);
+        return;
+      }
+      if (key === "u") {
+        event.preventDefault();
+        undoDelete();
+        return;
+      }
+      if (key === "h") {
+        event.preventDefault();
+        seekBy(-1);
+        return;
+      }
+      if (key === "l") {
+        event.preventDefault();
+        seekBy(1);
+        return;
+      }
+      if (key === "H") {
+        event.preventDefault();
+        seekBy(-5);
+        return;
+      }
+      if (key === "L") {
+        event.preventDefault();
+        seekBy(5);
+        return;
+      }
+      if (key === "0") {
+        event.preventDefault();
+        seekToTime(0);
+        return;
+      }
+      if (key === "$") {
+        event.preventDefault();
+        seekToTime(wavesurfer.getDuration());
+        return;
+      }
+      if (key === "[") {
+        if (selection.start === null) return;
+        event.preventDefault();
+        seekToTime(selection.start);
+        return;
+      }
+      if (key === "]") {
+        if (selection.end === null) return;
+        event.preventDefault();
+        seekToTime(selection.end);
+        return;
+      }
+      if (key === "Escape") {
+        event.preventDefault();
+        clearSelection();
+        selectBgm(null);
+        return;
+      }
+      if (key === "Delete" || key === "Backspace") {
+        if (selectedBgmId === null) return;
+        event.preventDefault();
+        deleteSelectedBgm();
+      }
+    });
+
+    const params = new URLSearchParams(window.location.search);
+    const fileParam = params.get("file");
+    if (fileParam) {
+      const isAuto = fileParam === "auto";
+      const url = isAuto ? "/api/auto" : fileParam;
+      loadFromUrl(url, fileParam, isAuto);
+    }
   </script>
 </body>
 </html>
