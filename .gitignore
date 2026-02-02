@@ -201,6 +201,12 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Audio artifacts
+*.wav
+*.mp3
+bgm_layout.json
+src/clipod/web/bgm/
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
