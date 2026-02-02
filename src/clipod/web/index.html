@@ -9,29 +9,30 @@
   <script src="https://unpkg.com/wavesurfer.js@7/dist/plugins/regions.min.js"></script>
   <style>
     :root {
-      color-scheme: light;
+      color-scheme: dark;
     }
     body {
       margin: 16px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      color: #1f2933;
-      background: #f7f9fb;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
+      color: #e5e7eb;
+      background: #0b0f14;
     }
     h1 {
       font-size: 18px;
       margin: 0 0 12px;
       font-weight: 600;
+      color: #f9fafb;
     }
     .panel {
-      background: #ffffff;
-      border: 1px solid #d8e2ec;
-      border-radius: 8px;
+      background: #111827;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
       padding: 12px 16px 16px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
     }
     .panel.selection-active {
-      border-color: #0d6efd;
-      box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.15);
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
     }
     .top-row {
       display: flex;
@@ -39,26 +40,44 @@
       align-items: center;
       flex-wrap: wrap;
       font-size: 12px;
-      color: #52616b;
+      color: #9ca3af;
     }
     .file-label {
       font-size: 12px;
-      color: #52616b;
+      color: #d1d5db;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 60%;
+      max-width: 40%;
     }
     #waveform {
       min-width: 100%;
     }
     #waveformWrap {
-      margin-top: 12px;
+      margin-top: 6px;
       overflow-x: auto;
       overflow-y: hidden;
+      border: 1px solid #1f2937;
+      border-radius: 10px;
+      background: #0b1220;
+      padding: 6px 0;
+      position: relative;
+    }
+    .voice-header {
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+    .track-label {
+      font-weight: 600;
+      color: #f9fafb;
+      letter-spacing: 0.04em;
     }
     .zoom-indicator strong {
-      color: #1f2933;
+      color: #f9fafb;
       font-weight: 600;
     }
     .status-line {
@@ -67,16 +86,14 @@
       gap: 12px;
       font-size: 12px;
       margin-top: 8px;
-      color: #52616b;
+      color: #9ca3af;
     }
     .status-line strong {
-      color: #1f2933;
+      color: #f9fafb;
       font-weight: 600;
     }
     .bgm-panel {
-      margin-top: 16px;
-      padding-top: 12px;
-      border-top: 1px solid #e6eef5;
+      margin: 6px 0 6px;
     }
     .bgm-header {
       display: flex;
@@ -84,24 +101,33 @@
       gap: 12px;
       align-items: center;
       font-size: 12px;
-      color: #52616b;
+      color: #9ca3af;
     }
     .bgm-track-label {
       font-weight: 600;
-      color: #1f2933;
+      color: #f9fafb;
+    }
+    .bgm-file-label {
+      font-weight: 600;
+      color: #bbf7d0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 240px;
     }
     #bgmTimelineWrap {
-      margin-top: 8px;
+      margin-top: 6px;
       overflow-x: auto;
       overflow-y: hidden;
-      border: 1px dashed #d8e2ec;
-      border-radius: 6px;
-      background: #f9fbfd;
-      padding: 4px 0;
+      border: 1px solid #14532d;
+      border-radius: 10px;
+      background: #0b1612;
+      padding: 6px 0;
+      position: relative;
     }
     #bgmTimeline {
       position: relative;
-      height: 96px;
+      height: 112px;
       min-width: 100%;
     }
     #bgmMarkers {
@@ -111,18 +137,18 @@
       right: 0;
       height: 20px;
       font-size: 10px;
-      color: #7b8794;
+      color: #6ee7b7;
       pointer-events: none;
       z-index: 2;
     }
     #bgmWaveform {
       position: absolute;
-      top: 24px;
+      top: 26px;
       left: 0;
       right: 0;
-      height: 56px;
+      height: 64px;
       pointer-events: none;
-      opacity: 0.6;
+      opacity: 0.8;
       z-index: 1;
     }
     .bgm-marker {
@@ -133,32 +159,32 @@
     }
     #bgmLane {
       position: absolute;
-      top: 24px;
+      top: 26px;
       left: 0;
       right: 0;
-      height: 56px;
+      height: 64px;
       z-index: 3;
     }
     .bgm-segment {
       position: absolute;
-      top: 8px;
-      height: 40px;
-      border-radius: 6px;
-      background: rgba(13, 110, 253, 0.25);
-      border: 1px solid #0d6efd;
+      top: 10px;
+      height: 44px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.25);
+      border: 1px solid #10b981;
       cursor: grab;
       display: flex;
       align-items: center;
       padding: 0 8px;
       font-size: 11px;
-      color: #1f2933;
+      color: #ecfdf5;
       box-sizing: border-box;
       user-select: none;
       z-index: 4;
     }
     .bgm-segment.selected {
-      background: rgba(13, 110, 253, 0.4);
-      border-color: #084298;
+      background: rgba(16, 185, 129, 0.45);
+      border-color: #34d399;
     }
     .bgm-segment .handle {
       position: absolute;
@@ -175,7 +201,7 @@
     }
     .bgm-info {
       font-size: 12px;
-      color: #52616b;
+      color: #9ca3af;
       margin-top: 8px;
       display: flex;
       flex-wrap: wrap;
@@ -193,46 +219,67 @@
     .bgm-drop {
       margin-top: 6px;
       font-size: 11px;
-      color: #7b8794;
+      color: #6b7280;
     }
     .selection-indicator {
       padding: 2px 6px;
       border-radius: 999px;
-      background: #e7edf3;
-      color: #52616b;
+      background: #1f2937;
+      color: #9ca3af;
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
     .panel.selection-active .selection-indicator {
-      background: #0d6efd;
-      color: #ffffff;
+      background: #60a5fa;
+      color: #0b0f14;
     }
     #status {
       margin-top: 8px;
       font-size: 12px;
-      color: #0b5ed7;
+      color: #93c5fd;
     }
     #status.error {
-      color: #c1121f;
+      color: #fca5a5;
     }
     button {
-      border: 1px solid #d8e2ec;
-      background: #ffffff;
-      color: #52616b;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e5e7eb;
       font-size: 12px;
-      padding: 4px 8px;
-      border-radius: 6px;
+      padding: 4px 10px;
+      border-radius: 8px;
       cursor: pointer;
     }
     button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
+    button:not(:disabled):hover {
+      border-color: #60a5fa;
+      color: #f9fafb;
+    }
+    .track-playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #fbbf24;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0.8;
+    }
+    .bgm-panel:not(.bgm-loaded) #bgmTimelineWrap,
+    .bgm-panel:not(.bgm-loaded) .bgm-info {
+      display: none;
+    }
+    .bgm-panel.bgm-loaded .bgm-drop {
+      display: none;
+    }
     details.shortcuts {
       margin-top: 10px;
       font-size: 12px;
-      color: #52616b;
+      color: #9ca3af;
       max-width: 640px;
     }
     details.shortcuts summary {
@@ -252,12 +299,16 @@
   <div class="panel" id="editor">
     <div class="top-row">
       <input type="file" id="fileInput" accept="audio/*" />
-      <span class="file-label" id="fileLabel">No file loaded</span>
       <span class="zoom-indicator">Zoom <strong id="zoomLevel">--</strong> px/s</span>
       <button type="button" id="resetZoom" disabled>Reset Zoom</button>
     </div>
+    <div class="voice-header">
+      <span class="track-label">VOICE</span>
+      <span class="file-label" id="fileLabel">No file loaded</span>
+    </div>
     <div id="waveformWrap">
       <div id="waveform"></div>
+      <span class="track-playhead" id="voicePlayhead"></span>
     </div>
     <div class="status-line">
       <span>Time <strong id="currentTime">00:00.00</strong></span>
@@ -270,24 +321,21 @@
       <summary>Shortcuts</summary>
       <ul>
         <li><strong>Space</strong>: play/pause</li>
-        <li><strong>i</strong>/<strong>o</strong>: set selection start/end</li>
-        <li><strong>d</strong>: delete selection</li>
-        <li><strong>u</strong>: undo delete</li>
-        <li><strong>h</strong>/<strong>l</strong>: seek -/+1s</li>
-        <li><strong>H</strong>/<strong>L</strong>: seek -/+5s</li>
-        <li><strong>0</strong>/<strong>$</strong>: jump start/end</li>
-        <li><strong>[</strong>/<strong>]</strong>: jump to selection start/end</li>
+        <li><strong>I</strong>/<strong>O</strong>: set In/Out selection</li>
+        <li><strong>D</strong>: delete selection (voice track)</li>
+        <li><strong>⌘+Z</strong>: undo delete</li>
+        <li><strong>⌘+⇧+Z</strong>: redo (not implemented)</li>
+        <li><strong>←</strong>/<strong>→</strong>: nudge playhead</li>
+        <li><strong>⌘+←</strong>/<strong>⌘+→</strong>: jump start/end</li>
         <li><strong>Esc</strong>: clear selection</li>
       </ul>
     </details>
     <div class="bgm-panel">
       <div class="bgm-header">
-        <span class="bgm-track-label">BGM Track</span>
+        <span class="bgm-track-label">BGM</span>
+        <span class="bgm-file-label" id="bgmFileLabel">♪ No BGM loaded</span>
         <input type="file" id="bgmInput" accept="audio/*" />
         <button type="button" id="addBgm">Add block</button>
-        <button type="button" id="playBgm" disabled>Play BGM</button>
-        <button type="button" id="previewMix" disabled>Preview Mix</button>
-        <button type="button" id="deleteBgm" disabled>Delete BGM</button>
         <button type="button" id="mixBgm" disabled>Mix</button>
       </div>
       <div class="bgm-drop">Drag & drop a BGM file onto the timeline to load it.</div>
@@ -295,6 +343,7 @@
         <div id="bgmTimeline">
           <div id="bgmMarkers"></div>
           <div id="bgmWaveform"></div>
+          <span class="track-playhead" id="bgmPlayhead"></span>
           <div id="bgmLane"></div>
         </div>
       </div>
@@ -328,10 +377,11 @@
     const bgmWaveformEl = document.getElementById("bgmWaveform");
     const bgmInput = document.getElementById("bgmInput");
     const addBgmBtn = document.getElementById("addBgm");
-    const playBgmBtn = document.getElementById("playBgm");
-    const previewMixBtn = document.getElementById("previewMix");
-    const deleteBgmBtn = document.getElementById("deleteBgm");
     const mixBgmBtn = document.getElementById("mixBgm");
+    const bgmFileLabel = document.getElementById("bgmFileLabel");
+    const bgmPanel = document.querySelector(".bgm-panel");
+    const voicePlayhead = document.getElementById("voicePlayhead");
+    const bgmPlayhead = document.getElementById("bgmPlayhead");
     const bgmStartEl = document.getElementById("bgmStart");
     const bgmEndEl = document.getElementById("bgmEnd");
     const bgmVolumeEl = document.getElementById("bgmVolume");
@@ -360,13 +410,11 @@
     let bgmDuration = 0;
     let bgmObjectUrl = null;
     let bgmWaveSurfer = null;
-    let bgmPreview = null;
     let previewContext = null;
-    let previewMainBuffer = null;
+    let previewStartOffset = 0;
     let previewBgmBuffer = null;
     let previewSources = [];
     let previewGain = null;
-    let previewPlaying = false;
     const bgmDefaultVolume = 0.25;
     const bgmDefaultFade = 3;
 
@@ -411,6 +459,9 @@
       if (!wavesurfer) return;
       zoomLevel = Math.max(1, value);
       wavesurfer.zoom(zoomLevel);
+      if (bgmWaveSurfer) {
+        bgmWaveSurfer.zoom(zoomLevel);
+      }
       updateZoomUI();
       updateTimelineScale();
     };
@@ -430,9 +481,6 @@
       renderMarkers(duration);
       renderBgmSegments(false);
       updateBgmWaveformWidth();
-      if (bgmWaveSurfer) {
-        bgmWaveSurfer.zoom(zoomLevel);
-      }
     };
 
     const renderMarkers = (duration) => {
@@ -486,12 +534,11 @@
       if (!segment) {
         bgmStartEl.textContent = "--:--.--";
         bgmEndEl.textContent = "--:--.--";
-        bgmVolumeEl.disabled = true;
-        bgmFadeInEl.disabled = true;
-        bgmFadeOutEl.disabled = true;
-        deleteBgmBtn.disabled = true;
-        updateMixAvailability();
-        return;
+      bgmVolumeEl.disabled = true;
+      bgmFadeInEl.disabled = true;
+      bgmFadeOutEl.disabled = true;
+      updateMixAvailability();
+      return;
       }
       bgmStartEl.textContent = formatTime(segment.start);
       bgmEndEl.textContent = formatTime(segment.end);
@@ -501,7 +548,6 @@
       bgmVolumeEl.disabled = false;
       bgmFadeInEl.disabled = false;
       bgmFadeOutEl.disabled = false;
-      deleteBgmBtn.disabled = false;
       updateMixAvailability();
       persistLayout();
     };
@@ -664,21 +710,14 @@
       if (bgmObjectUrl) {
         URL.revokeObjectURL(bgmObjectUrl);
       }
-      if (bgmPreview) {
-        bgmPreview.pause();
-        bgmPreview = null;
-        playBgmBtn.textContent = "Play BGM";
-      }
       updateBgmWaveformWidth();
       bgmObjectUrl = URL.createObjectURL(file);
-      bgmPreview = new Audio(bgmObjectUrl);
-      bgmPreview.loop = true;
       bgmWaveSurfer = WaveSurfer.create({
         container: "#bgmWaveform",
-        waveColor: "#adcdfc",
-        progressColor: "#7eb0f7",
+        waveColor: "#14532d",
+        progressColor: "#22c55e",
         cursorColor: "transparent",
-        height: 56,
+        height: 64,
         normalize: true,
         interact: false,
       });
@@ -686,24 +725,10 @@
         bgmWaveSurfer.zoom(zoomLevel);
       });
       bgmWaveSurfer.load(bgmObjectUrl);
-      updateBgmPlaybackAvailability();
-      updatePreviewAvailability();
     };
 
     const updateMixAvailability = () => {
       mixBgmBtn.disabled = !autoMode || bgmSegments.length === 0 || !bgmFile;
-    };
-
-    const updateBgmPlaybackAvailability = () => {
-      playBgmBtn.disabled = !bgmPreview;
-    };
-
-    const updatePreviewAvailability = () => {
-      previewMixBtn.disabled = !wavesurfer || !bgmFile || bgmSegments.length === 0;
-    };
-
-    const updatePreviewAvailability = () => {
-      previewMixBtn.disabled = !wavesurfer || !bgmFile || bgmSegments.length === 0;
     };
 
     const updateBgmWaveformWidth = () => {
@@ -756,6 +781,19 @@
       audio.src = tempUrl;
     });
 
+    const updatePlayheadUI = (time) => {
+      if (!wavesurfer) return;
+      const duration = wavesurfer.getDuration() || 0;
+      if (!duration) return;
+      const clamped = Math.max(0, Math.min(time, duration));
+      const left = clamped * timelinePxPerSec;
+      voicePlayhead.style.left = `${left}px`;
+      bgmPlayhead.style.left = `${left}px`;
+      currentTimeEl.textContent = formatTime(clamped);
+    };
+
+    const getPlaybackTime = () => (wavesurfer ? wavesurfer.getCurrentTime() : 0);
+
     const clearSelection = () => {
       selection = { start: null, end: null };
       if (activeRegion) {
@@ -777,12 +815,21 @@
         activeRegion = regions.addRegion({
           start,
           end,
-          color: "rgba(13, 110, 253, 0.25)",
+          color: "rgba(96, 165, 250, 0.25)",
           drag: true,
           resize: true,
         });
       }
       updateSelectionUI();
+    };
+
+    const detachHiddenFileInputs = () => {
+      if (document.activeElement === bgmInput) {
+        bgmInput.blur();
+      }
+      if (document.activeElement === fileInput) {
+        fileInput.blur();
+      }
     };
 
     const clampTime = (time) => {
@@ -796,12 +843,16 @@
       const duration = wavesurfer.getDuration() || 0;
       if (!duration) return;
       const clamped = clampTime(time);
-      wavesurfer.seekTo(clamped / duration);
+      updatePlayheadUI(clamped);
+      previewStartOffset = clamped;
+      if (wavesurfer.isPlaying()) {
+        wavesurfer.seekTo(clamped / duration);
+      }
     };
 
     const seekBy = (delta) => {
       if (!wavesurfer) return;
-      const current = wavesurfer.getCurrentTime();
+      const current = getPlaybackTime();
       seekToTime(current + delta);
     };
 
@@ -825,15 +876,16 @@
       regions = WaveSurfer.Regions.create();
       wavesurfer = WaveSurfer.create({
         container: "#waveform",
-        waveColor: "#8cc0ff",
-        progressColor: "#0d6efd",
-        cursorColor: "#0d6efd",
-        height: 180,
+        waveColor: "#6b7280",
+        progressColor: "#60a5fa",
+        cursorColor: "transparent",
+        height: 160,
         normalize: true,
         plugins: [regions],
       });
 
       wavesurfer.on("ready", () => {
+        wavesurfer.setVolume(0);
         durationEl.textContent = formatTime(wavesurfer.getDuration());
         currentTimeEl.textContent = formatTime(0);
         const duration = wavesurfer.getDuration() || 1;
@@ -845,6 +897,7 @@
           ? "Ready. Use Space to play, i/o to set selection, d to delete."
           : "Ready. Use Space to play and i/o to set selection.";
         updateStatus(message);
+        updatePlayheadUI(0);
         if (pendingSeekTime !== null) {
           seekToTime(pendingSeekTime);
           pendingSeekTime = null;
@@ -853,24 +906,34 @@
           wavesurfer.play();
           pendingPlay = false;
         }
-        updatePreviewAvailability();
       });
 
       wavesurfer.on("timeupdate", (time) => {
-        currentTimeEl.textContent = formatTime(time);
+        updatePlayheadUI(time);
       });
 
       wavesurfer.on("seek", (progress) => {
         const duration = wavesurfer.getDuration() || 0;
-        currentTimeEl.textContent = formatTime(duration * progress);
+        const time = duration * progress;
+        updatePlayheadUI(time);
+        previewStartOffset = time;
+      });
+
+      wavesurfer.on("play", () => {
+        startPreviewMix(wavesurfer.getCurrentTime());
+      });
+
+      wavesurfer.on("pause", () => {
+        stopPreviewMix();
       });
 
       wavesurfer.on("finish", () => {
-        currentTimeEl.textContent = formatTime(wavesurfer.getDuration());
+        stopPreviewMix();
+        updatePlayheadUI(wavesurfer.getDuration());
       });
 
       regions.enableDragSelection({
-        color: "rgba(13, 110, 253, 0.25)",
+        color: "rgba(96, 165, 250, 0.25)",
       });
 
       regions.on("region-created", (region) => {
@@ -898,17 +961,20 @@
       });
 
       activeObjectUrl = URL.createObjectURL(blob);
+      console.log("wavesurfer.load", { objectUrl: activeObjectUrl, label, isAuto });
       wavesurfer.load(activeObjectUrl);
     };
 
     const loadFromUrl = async (url, label, isAuto, seekTime = null, play = false) => {
       try {
         updateStatus("Loading audio...");
+        console.log("loadFromUrl fetch", { url, label, isAuto });
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) {
           throw new Error(`Failed to load ${url}`);
         }
         const blob = await res.blob();
+        console.log("loadFromUrl blob", { size: blob.size, type: blob.type });
         pendingSeekTime = seekTime;
         pendingPlay = play;
         initWaveform(blob, label, isAuto);
@@ -923,18 +989,35 @@
         updateStatus("Delete/undo requires ?file=auto.", true);
         return;
       }
-      const cacheBust = `/api/auto?ts=${Date.now()}`;
+      const cacheBust = `/api/auto?t=${Date.now()}`;
+      console.log("reloadAuto", { cacheBust, seekTime, play });
+      stopPreviewMix();
+      if (wavesurfer) {
+        wavesurfer.pause();
+      }
+      if (activeObjectUrl) {
+        URL.revokeObjectURL(activeObjectUrl);
+        activeObjectUrl = null;
+      }
       await loadFromUrl(cacheBust, "auto", true, seekTime, play);
     };
 
+    const reloadAutoForced = async (seekTime, play) => {
+      autoMode = true;
+      await reloadAuto(seekTime, play);
+    };
+
     const deleteSelection = async () => {
+      console.log("deleteSelection called", { selection, autoMode, busy });
       if (busy) return;
       if (!selection.start && selection.start !== 0 || selection.end === null) {
         updateStatus("No selection to delete.", true);
         return;
       }
       if (!autoMode) {
-        updateStatus("Delete only works with ?file=auto.", true);
+        console.log("deleteSelection skipping server delete (non-auto mode)");
+        clearSelection();
+        updateStatus("Selection cleared (local only).");
         return;
       }
       const start = selection.start;
@@ -944,7 +1027,8 @@
         updateStatus("Invalid selection.", true);
         return;
       }
-      const currentTime = wavesurfer.getCurrentTime();
+      console.log("deleteSelection range", { start, end, duration });
+      const currentTime = getPlaybackTime();
       const wasPlaying = wavesurfer.isPlaying();
       let targetTime = currentTime;
       if (currentTime > end) {
@@ -956,15 +1040,19 @@
       wavesurfer.pause();
       updateStatus("Deleting selection...");
       try {
+        console.log("deleteSelection sending request", { start, end });
         const res = await fetch("/api/delete", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ start, end }),
         });
+        console.log("deleteSelection response", { ok: res.ok, status: res.status });
         if (!res.ok) {
           const text = await res.text();
+          console.log("deleteSelection response text", text);
           throw new Error(text || `HTTP ${res.status}`);
         }
+        console.log("deleteSelection clearing selection + reload");
         clearSelection();
         await reloadAuto(targetTime, wasPlaying);
         updateStatus("Deleted selection.");
@@ -982,7 +1070,7 @@
         updateStatus("Undo only works with ?file=auto.", true);
         return;
       }
-      const currentTime = wavesurfer.getCurrentTime();
+      const currentTime = getPlaybackTime();
       const wasPlaying = wavesurfer.isPlaying();
       busy = true;
       wavesurfer.pause();
@@ -1007,7 +1095,28 @@
     fileInput.addEventListener("change", (evt) => {
       const file = evt.target.files?.[0];
       if (!file) return;
-      initWaveform(file, file.name, false);
+      fileInput.blur();
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+      updateStatus("Uploading audio...");
+      fetch("/api/upload", { method: "POST", body: formData })
+        .then((res) => {
+          if (!res.ok) {
+            return res.text().then((text) => {
+              throw new Error(text || `Upload failed (${res.status})`);
+            });
+          }
+          return res.json();
+        })
+        .then(() => {
+          updateStatus("Upload complete.");
+          previewStartOffset = 0;
+          reloadAutoForced(0, false);
+        })
+        .catch((err) => {
+          console.error(err);
+          updateStatus(`Upload failed: ${err.message}`, true);
+        });
     });
 
     resetZoomBtn.addEventListener("click", () => {
@@ -1017,6 +1126,7 @@
 
     waveformWrap.addEventListener("wheel", (event) => {
       if (!wavesurfer) return;
+      if (!event.ctrlKey) return;
       event.preventDefault();
       const direction = event.deltaY < 0 ? 1 : -1;
       const step = Math.max(5, Math.round(zoomLevel * 0.1));
@@ -1038,7 +1148,8 @@
       syncingScroll = false;
     });
 
-    bgmTimelineWrap.addEventListener("click", () => {
+    bgmTimelineWrap.addEventListener("click", (event) => {
+      if (event.detail > 1) return;
       selectBgm(null);
     });
 
@@ -1046,9 +1157,6 @@
       const segment = bgmSegments.find((item) => item.id === selectedBgmId);
       if (!segment) return;
       segment.volume = parseFloat(bgmVolumeEl.value);
-      if (bgmPreview) {
-        bgmPreview.volume = segment.volume;
-      }
       if (previewGain) {
         previewGain.gain.value = segment.volume;
       }
@@ -1069,15 +1177,6 @@
       persistLayout();
     });
 
-    const deleteSelectedBgm = () => {
-      if (selectedBgmId === null) return false;
-      bgmSegments = bgmSegments.filter((item) => item.id !== selectedBgmId);
-      selectedBgmId = null;
-      renderBgmSegments();
-      updatePreviewAvailability();
-      return true;
-    };
-
     const stopPreviewMix = () => {
       previewSources.forEach((source) => {
         try {
@@ -1087,24 +1186,11 @@
         }
       });
       previewSources = [];
-      previewPlaying = false;
-      previewMixBtn.textContent = "Preview Mix";
     };
 
     const loadPreviewBuffers = async () => {
       if (!previewContext) {
         previewContext = new AudioContext();
-      }
-      if (!previewMainBuffer) {
-        if (activeObjectUrl) {
-          const mainRes = await fetch(activeObjectUrl);
-          const mainData = await mainRes.arrayBuffer();
-          previewMainBuffer = await previewContext.decodeAudioData(mainData.slice(0));
-        } else if (autoMode) {
-          const mainRes = await fetch("/api/auto?ts=" + Date.now(), { cache: "no-store" });
-          const mainData = await mainRes.arrayBuffer();
-          previewMainBuffer = await previewContext.decodeAudioData(mainData.slice(0));
-        }
       }
       if (!previewBgmBuffer && bgmFile) {
         const bgmData = await bgmFile.arrayBuffer();
@@ -1112,67 +1198,39 @@
       }
     };
 
-    const startPreviewMix = async () => {
+    const startPreviewMix = async (offsetSeconds = 0) => {
+      if (!bgmFile || bgmSegments.length === 0) {
+        return;
+      }
       await loadPreviewBuffers();
-      if (!previewMainBuffer || !previewBgmBuffer) {
-        updateStatus("Preview requires main audio and BGM loaded.", true);
+      if (!previewBgmBuffer) {
         return;
       }
       stopPreviewMix();
+      if (previewContext && previewContext.state === "suspended") {
+        await previewContext.resume();
+      }
       previewGain = previewContext.createGain();
       previewGain.gain.value = parseFloat(bgmVolumeEl.value || 0);
       previewGain.connect(previewContext.destination);
-      const mainSource = previewContext.createBufferSource();
-      mainSource.buffer = previewMainBuffer;
-      mainSource.connect(previewContext.destination);
-      previewSources.push(mainSource);
+      const offset = Math.max(0, offsetSeconds);
       bgmSegments.forEach((segment) => {
-        const duration = Math.max(0, segment.end - segment.start);
-        if (!duration) return;
+        const segDuration = Math.max(0, segment.end - segment.start);
+        if (!segDuration) return;
         const bgmSource = previewContext.createBufferSource();
         bgmSource.buffer = previewBgmBuffer;
         bgmSource.connect(previewGain);
-        const offset = Math.max(0, segment.offset);
-        bgmSource.start(previewContext.currentTime + segment.start, offset, duration);
+        const segStart = segment.start;
+        if (segStart + segDuration <= offset) return;
+        const relativeStart = Math.max(0, segStart - offset);
+        const segOffset = Math.max(0, segment.offset + (offset - segStart > 0 ? offset - segStart : 0));
+        const playDuration = Math.max(0, segDuration - (offset - segStart > 0 ? offset - segStart : 0));
+        if (playDuration <= 0) return;
+        bgmSource.start(previewContext.currentTime + relativeStart, segOffset, playDuration);
         previewSources.push(bgmSource);
       });
-      mainSource.start();
-      previewPlaying = true;
-      previewMixBtn.textContent = "Stop Preview";
     };
 
-    previewMixBtn.addEventListener("click", async () => {
-      if (previewPlaying) {
-        stopPreviewMix();
-        return;
-      }
-      try {
-        await startPreviewMix();
-      } catch (err) {
-        console.error(err);
-        updateStatus("Preview mix failed.", true);
-      }
-    });
-
-    playBgmBtn.addEventListener("click", () => {
-      if (!bgmPreview) return;
-      if (bgmPreview.paused) {
-        bgmPreview.volume = parseFloat(bgmVolumeEl.value || 0);
-        bgmPreview.play().catch((err) => {
-          console.error(err);
-          updateStatus("BGM playback failed.", true);
-        });
-        playBgmBtn.textContent = "Stop BGM";
-      } else {
-        bgmPreview.pause();
-        bgmPreview.currentTime = 0;
-        playBgmBtn.textContent = "Play BGM";
-      }
-    });
-
-    deleteBgmBtn.addEventListener("click", () => {
-      deleteSelectedBgm();
-    });
 
     mixBgmBtn.addEventListener("click", async () => {
       if (!autoMode) {
@@ -1246,11 +1304,12 @@
         bgmFile = file;
         bgmUploadPath = null;
         bgmDuration = duration;
+        previewBgmBuffer = null;
         initBgmWaveform(file);
         addBgmSegment({ name: file.name, duration, file: null });
         updateMixAvailability();
-        updateBgmPlaybackAvailability();
-        updatePreviewAvailability();
+        bgmFileLabel.textContent = `♪ ${file.name}`;
+        bgmPanel.classList.add("bgm-loaded");
         updateStatus("BGM loaded.");
       } catch (err) {
         console.error(err);
@@ -1273,6 +1332,8 @@
       if (!file) return;
       await handleBgmFile(file);
       bgmInput.value = "";
+      bgmInput.blur();
+      detachHiddenFileInputs();
     });
 
     bgmTimelineWrap.addEventListener("dragover", (event) => {
@@ -1288,31 +1349,31 @@
 
     document.addEventListener("keydown", (event) => {
       if (!wavesurfer) return;
-      if (event.target && event.target.tagName === "INPUT") return;
+      if (event.target && event.target.tagName === "INPUT" && event.target.type !== "file") return;
       const key = event.key;
+      detachHiddenFileInputs();
       const current = wavesurfer.getCurrentTime();
       if (key === " ") {
         event.preventDefault();
-        wavesurfer.playPause();
+        if (wavesurfer.isPlaying()) {
+          wavesurfer.pause();
+        } else {
+          wavesurfer.play();
+        }
         return;
       }
-      if (key === "i") {
+      if (key === "i" || key === "I") {
         event.preventDefault();
         setSelectionPoint("start", current);
         return;
       }
-      if (key === "o") {
+      if (key === "o" || key === "O") {
         event.preventDefault();
         setSelectionPoint("end", current);
         return;
       }
-      if (key === "d") {
+      if (key === "d" || key === "D") {
         event.preventDefault();
-        console.log("keydown d", { selectedBgmId, selection });
-        if (selectedBgmId !== null) {
-          deleteSelectedBgm();
-          return;
-        }
         if (selection.start !== null && selection.end !== null) {
           deleteSelection();
           return;
@@ -1320,51 +1381,34 @@
         updateStatus("No selection to delete.", true);
         return;
       }
-      if (key === "u") {
+      if (event.metaKey && !event.shiftKey && (key === "z" || key === "Z")) {
         event.preventDefault();
         undoDelete();
         return;
       }
-      if (key === "h") {
+      if (event.metaKey && event.shiftKey && (key === "z" || key === "Z")) {
         event.preventDefault();
-        seekBy(-1);
+        updateStatus("Redo not available yet.", true);
         return;
       }
-      if (key === "l") {
-        event.preventDefault();
-        seekBy(1);
-        return;
-      }
-      if (key === "H") {
-        event.preventDefault();
-        seekBy(-5);
-        return;
-      }
-      if (key === "L") {
-        event.preventDefault();
-        seekBy(5);
-        return;
-      }
-      if (key === "0") {
+      if (event.metaKey && key === "ArrowLeft") {
         event.preventDefault();
         seekToTime(0);
         return;
       }
-      if (key === "$") {
+      if (event.metaKey && key === "ArrowRight") {
         event.preventDefault();
         seekToTime(wavesurfer.getDuration());
         return;
       }
-      if (key === "[") {
-        if (selection.start === null) return;
+      if (key === "ArrowLeft") {
         event.preventDefault();
-        seekToTime(selection.start);
+        seekBy(-1);
         return;
       }
-      if (key === "]") {
-        if (selection.end === null) return;
+      if (key === "ArrowRight") {
         event.preventDefault();
-        seekToTime(selection.end);
+        seekBy(1);
         return;
       }
       if (key === "Escape") {
@@ -1374,18 +1418,21 @@
         return;
       }
       if (key === "Delete" || key === "Backspace") {
-        if (selectedBgmId === null) return;
         event.preventDefault();
-        deleteSelectedBgm();
+        if (selection.start !== null && selection.end !== null) {
+          deleteSelection();
+        }
       }
     });
 
     const params = new URLSearchParams(window.location.search);
     const fileParam = params.get("file");
+    const isAutoFile = (fileParam || "").toLowerCase() === "auto";
     if (fileParam) {
-      const isAuto = fileParam === "auto";
-      const url = isAuto ? "/api/auto" : fileParam;
-      loadFromUrl(url, fileParam, isAuto);
+      const url = isAutoFile ? "/api/auto" : fileParam;
+      loadFromUrl(url, fileParam, isAutoFile);
+    } else if (isAutoFile) {
+      loadFromUrl("/api/auto", "auto", true);
     }
   </script>
 </body>
