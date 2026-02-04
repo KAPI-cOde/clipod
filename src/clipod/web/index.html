@@ -12,10 +12,21 @@
       color-scheme: dark;
     }
     body {
-      margin: 16px;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Helvetica Neue", sans-serif;
       color: #e5e7eb;
-      background: #0b0f14;
+      background: #2d2d2d;
+    }
+    body > .panel {
+      width: min(1100px, calc(100vw - 32px));
+      margin: 16px;
+    }
+    h1 {
+      display: none;
     }
     h1 {
       font-size: 18px;
@@ -24,23 +35,224 @@
       color: #f9fafb;
     }
     .panel {
-      background: #111827;
-      border: 1px solid #1f2937;
+      background: #1f1f1f;
+      border: 1px solid #2a2a2a;
       border-radius: 12px;
-      padding: 12px 16px 16px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+      padding: 12px 16px 72px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+      position: relative;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     }
     .panel.selection-active {
       border-color: #60a5fa;
       box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.2);
     }
+    .panel.punch-active {
+      border-color: #f87171;
+      box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.25);
+    }
     .top-row {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #9ca3af;
+      background: #1f1d1b;
+      border: 1px solid #2d2a27;
+      border-radius: 12px;
+      padding: 8px 10px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(6px);
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .panel.show-controls .top-row,
+    .top-row:hover,
+    .top-row:focus-within {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(0);
+    }
+    .transport-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .top-row button {
+      border: 1px solid #2d2a27;
+      background: #262321;
+      color: #d9d6d2;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 10px;
+      letter-spacing: 0.04em;
+    }
+    .recording-panel {
+      margin: 20px 0;
+      padding: 28px 32px;
+      border-radius: 14px;
+      border: 1px solid #2f2925;
+      background: #1f1c1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      display: none;
+    }
+    .recording-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      z-index: 6;
+    }
+    .recording-modal .recording-overlay {
+      opacity: 1;
+      visibility: visible;
+    }
+    .empty-record-cta {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 4;
+    }
+    .empty-record-cta button {
+      pointer-events: auto;
+    }
+    .empty-record-btn {
+      border: 1px solid #475569;
+      background: #1f2937;
+      color: #f9fafb;
+      font-size: 20px;
+      font-weight: 600;
+      padding: 16px 36px;
+      border-radius: 999px;
+      box-shadow: 0 0 18px rgba(96, 165, 250, 0.25);
+    }
+    .empty-record-btn:hover {
+      border-color: #60a5fa;
+    }
+    .has-voice .empty-record-cta,
+    .recording-modal .empty-record-cta {
+      display: none;
+    }
+    .recording-actions {
       display: flex;
       gap: 12px;
       align-items: center;
       flex-wrap: wrap;
+      justify-content: center;
+    }
+    .recording-button {
+      border: 1px solid #3a3230;
+      background: #2a2624;
+      color: #f5f5f5;
+      font-size: 18px;
+      font-weight: 500;
+      padding: 12px 26px;
+      border-radius: 999px;
+      min-width: 180px;
+      transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .recording-stop {
+      border: 1px solid #4b1e1e;
+      background: #3b1b1b;
+      color: #fca5a5;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 16px;
+      border-radius: 999px;
+    }
+    .recording-stop:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .recording-button.recording {
+      background: #6e7b7c;
+      border-color: #97a9ab;
+      animation: recordPulse 2.4s ease-in-out infinite;
+    }
+    .recording-timer {
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-variant-numeric: tabular-nums;
+      color: #b6c4c0;
+    }
+    .punch-button {
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e5e7eb;
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 999px;
+    }
+    .punch-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .punch-info {
       font-size: 12px;
-      color: #9ca3af;
+      color: #fecaca;
+      border: 1px solid #7f1d1d;
+      background: rgba(248, 113, 113, 0.15);
+      padding: 4px 10px;
+      border-radius: 999px;
+      letter-spacing: 0.04em;
+    }
+    #recordingCanvas {
+      width: 100%;
+      max-width: 780px;
+      height: 120px;
+      border-radius: 12px;
+      border: 1px solid #2f2a26;
+      background: #1e1c1a;
+      box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.35);
+    }
+    @keyframes recordPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(151, 169, 171, 0.3);
+      }
+      70% {
+        box-shadow: 0 0 0 12px rgba(151, 169, 171, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(151, 169, 171, 0);
+      }
+    }
+    .file-menu {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .file-menu-meta {
+      display: none;
+    }
+    .file-menu-meta .file-label,
+    .file-menu-meta .bgm-file-label {
+      max-width: 220px;
+    }
+    .icon-button {
+      display: none;
+    }
+    #fileInput,
+    #bgmInput {
+      display: none;
     }
     .file-label {
       font-size: 12px;
@@ -54,22 +266,37 @@
       min-width: 100%;
     }
     #waveformWrap {
-      margin-top: 6px;
+      margin-top: 0;
       overflow-x: auto;
       overflow-y: hidden;
-      border: 1px solid #1f2937;
+      border: 1px solid #2d2a27;
       border-radius: 10px;
-      background: #0b1220;
-      padding: 6px 0;
+      background: #1f1d1b;
+      padding: 4px 0;
       position: relative;
     }
-    .voice-header {
-      margin-top: 6px;
+    .zoom-controls {
+      position: absolute;
+      top: 6px;
+      right: 8px;
       display: flex;
+      gap: 8px;
       align-items: center;
-      gap: 12px;
-      font-size: 12px;
-      color: #9ca3af;
+      background: rgba(31, 29, 27, 0.9);
+      border: 1px solid #2d2a27;
+      border-radius: 999px;
+      padding: 4px 8px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 6;
+    }
+    #waveformWrap.show-zoom .zoom-controls {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .voice-header {
+      display: none;
     }
     .track-label {
       font-weight: 600;
@@ -81,27 +308,21 @@
       font-weight: 600;
     }
     .status-line {
-      display: flex;
+      display: none;
       flex-wrap: wrap;
-      gap: 12px;
-      font-size: 12px;
-      margin-top: 8px;
-      color: #9ca3af;
+      gap: 8px 12px;
     }
-    .status-line strong {
-      color: #f9fafb;
-      font-weight: 600;
+    .panel.show-status .status-line {
+      display: flex;
     }
     .bgm-panel {
-      margin: 6px 0 6px;
+      margin: 0 0 4px;
+    }
+    .bgm-panel.bgm-loaded {
+      margin-top: 0;
     }
     .bgm-header {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      font-size: 12px;
-      color: #9ca3af;
+      display: none;
     }
     .bgm-track-label {
       font-weight: 600;
@@ -116,39 +337,48 @@
       max-width: 240px;
     }
     #bgmTimelineWrap {
-      margin-top: 6px;
+      margin-top: 0;
       overflow-x: auto;
       overflow-y: hidden;
-      border: 1px solid #14532d;
+      border: 1px solid #2d2a27;
       border-radius: 10px;
-      background: #0b1612;
-      padding: 6px 0;
+      background: #1f1d1b;
+      padding: 4px 0;
       position: relative;
+    }
+    #bgmTimelineWrap.bgm-empty {
+      border-style: dashed;
     }
     #bgmTimeline {
       position: relative;
-      height: 112px;
+      height: 96px;
       min-width: 100%;
     }
-    #bgmMarkers {
+    .bgm-placeholder {
       position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 20px;
-      font-size: 10px;
-      color: #6ee7b7;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      color: #8fb7b3;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
       pointer-events: none;
-      z-index: 2;
+      opacity: 0.7;
+    }
+    #bgmMarkers {
+      display: none;
     }
     #bgmWaveform {
       position: absolute;
-      top: 26px;
+      top: 12px;
       left: 0;
       right: 0;
       height: 64px;
       pointer-events: none;
-      opacity: 0.8;
+      opacity: 0.75;
       z-index: 1;
     }
     .bgm-marker {
@@ -159,7 +389,7 @@
     }
     #bgmLane {
       position: absolute;
-      top: 26px;
+      top: 12px;
       left: 0;
       right: 0;
       height: 64px;
@@ -200,13 +430,7 @@
       right: 0;
     }
     .bgm-info {
-      font-size: 12px;
-      color: #9ca3af;
-      margin-top: 8px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
+      display: none;
     }
     .bgm-info input[type="number"] {
       width: 72px;
@@ -215,6 +439,14 @@
     }
     .bgm-info input[type="range"] {
       width: 140px;
+    }
+    .bgm-info label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .bgm-info label span {
+      min-width: 54px;
     }
     .bgm-drop {
       margin-top: 6px;
@@ -235,9 +467,12 @@
       color: #0b0f14;
     }
     #status {
-      margin-top: 8px;
-      font-size: 12px;
-      color: #93c5fd;
+      display: none;
+      max-width: 100%;
+      word-break: break-word;
+    }
+    .panel.show-status #status {
+      display: block;
     }
     #status.error {
       color: #fca5a5;
@@ -269,78 +504,149 @@
       z-index: 5;
       opacity: 0.8;
     }
-    .bgm-panel:not(.bgm-loaded) #bgmTimelineWrap,
-    .bgm-panel:not(.bgm-loaded) .bgm-info {
+    .bgm-drop {
       display: none;
     }
-    .bgm-panel.bgm-loaded .bgm-drop {
-      display: none;
-    }
-    details.shortcuts {
-      margin-top: 10px;
+    .shortcuts-panel {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      background: #0f172a;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 12px 14px;
       font-size: 12px;
       color: #9ca3af;
-      max-width: 640px;
+      max-width: 280px;
+      display: none;
+      z-index: 7;
     }
-    details.shortcuts summary {
-      cursor: pointer;
+    .panel.show-shortcuts .shortcuts-panel {
+      display: block;
     }
-    details.shortcuts ul {
-      margin: 8px 0 0 16px;
-      padding: 0;
+    .shortcuts-panel h2 {
+      font-size: 12px;
+      margin: 0 0 6px;
+      color: #f9fafb;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
-    details.shortcuts li {
+    .shortcuts-panel ul {
+      margin: 0;
+      padding-left: 16px;
+    }
+    .shortcuts-panel li {
       margin-bottom: 4px;
+    }
+    .recording-modal .recording-panel {
+      display: flex;
+      position: fixed;
+      left: var(--recording-modal-left, 50%);
+      top: var(--recording-modal-top, 50%);
+      transform: translate(var(--recording-modal-translate-x, -50%), var(--recording-modal-translate-y, -50%));
+      margin: 0;
+      padding: 10px 12px;
+      width: min(var(--recording-modal-width, 300px), calc(100% - 32px));
+      height: var(--recording-modal-height, 200px);
+      gap: 8px;
+      background: rgba(31, 28, 26, 0.92);
+      border-color: #2f2925;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+      box-sizing: border-box;
+      z-index: 8;
+    }
+    .recording-modal .recording-actions {
+      width: 100%;
+      justify-content: space-between;
+      flex-wrap: nowrap;
+    }
+    .recording-modal .recording-button {
+      min-width: 90px;
+      font-size: 13px;
+      padding: 6px 12px;
+    }
+    .recording-modal .recording-timer {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+    }
+    .recording-modal #recordingCanvas {
+      height: 90px;
+    }
+    .top-row {
+      padding-bottom: 4px;
+    }
+    .recording-active .recording-panel {
+      margin-top: 0;
+    }
+    .panel.minimal .status-line,
+    .panel.minimal #status {
+      display: none;
+    }
+    .panel.minimal.show-status .status-line,
+    .panel.minimal.show-status #status {
+      display: flex;
     }
   </style>
 </head>
-<body>
-  <h1>clipod waveform editor</h1>
+  <body>
   <div class="panel" id="editor">
+    <div class="recording-overlay" id="recordingOverlay" aria-hidden="true"></div>
+    <div class="empty-record-cta" id="emptyRecordCta">
+      <button type="button" class="empty-record-btn" id="emptyRecordBtn">録音を開始</button>
+    </div>
     <div class="top-row">
+      <div class="transport-controls">
+        <button type="button" id="playBtn">再生</button>
+        <button type="button" id="stopBtn">停止</button>
+      </div>
+      <div class="file-menu" id="fileMenu">
+        <button type="button" id="filePickerBtn">VOICEを読み込む</button>
+        <button type="button" id="bgmPickerBtn">BGMを読み込む</button>
+        <button type="button" id="addBgm">効果音を追加</button>
+          <button type="button" id="mixBgm" disabled>書き出し</button>
+        <div class="file-menu-meta">
+          <span class="file-label" id="fileLabel">未読込</span>
+          <span class="bgm-file-label" id="bgmFileLabel">BGM未読込</span>
+        </div>
+      </div>
       <input type="file" id="fileInput" accept="audio/*" />
-      <span class="zoom-indicator">Zoom <strong id="zoomLevel">--</strong> px/s</span>
-      <button type="button" id="resetZoom" disabled>Reset Zoom</button>
+      <input type="file" id="bgmInput" accept="audio/*" />
     </div>
-    <div class="voice-header">
-      <span class="track-label">VOICE</span>
-      <span class="file-label" id="fileLabel">No file loaded</span>
+    <div class="recording-panel" id="recordingPanel">
+      <div class="recording-actions">
+        <button type="button" class="recording-button" id="recordBtn">録音</button>
+        <button type="button" class="recording-stop" id="recordStopBtn">停止</button>
+      </div>
+      <div class="recording-timer" id="recordTimer">00:00</div>
+      <div class="punch-info" id="punchInfo" hidden>差し替え録音中…</div>
+      <canvas id="recordingCanvas" width="720" height="120"></canvas>
     </div>
+      <div class="voice-header">
+        <span class="track-label">VOICE</span>
+      </div>
     <div id="waveformWrap">
       <div id="waveform"></div>
       <span class="track-playhead" id="voicePlayhead"></span>
+      <div class="zoom-controls" id="zoomControls">
+        <span class="zoom-indicator">縮尺 <strong id="zoomLevel">--</strong></span>
+        <button type="button" id="resetZoom" disabled>戻す</button>
+      </div>
     </div>
     <div class="status-line">
-      <span>Time <strong id="currentTime">00:00.00</strong></span>
-      <span>Sel <strong id="selectionStart">--:--.--</strong>–<strong id="selectionEnd">--:--.--</strong></span>
-      <span>Dur <strong id="duration">--:--.--</strong></span>
-      <span class="selection-indicator" id="selectionIndicator">No selection</span>
+      <span>再生 <strong id="currentTime">00:00.00</strong></span>
+      <span>範囲 <strong id="selectionStart">--:--.--</strong>–<strong id="selectionEnd">--:--.--</strong></span>
+      <span>全体 <strong id="duration">--:--.--</strong></span>
+      <span class="selection-indicator" id="selectionIndicator">未選択</span>
     </div>
-    <div id="status">Load an audio file or use ?file=auto.</div>
-    <details class="shortcuts">
-      <summary>Shortcuts</summary>
-      <ul>
-        <li><strong>Space</strong>: play/pause</li>
-        <li><strong>I</strong>/<strong>O</strong>: set In/Out selection</li>
-        <li><strong>D</strong>: delete selection (voice track)</li>
-        <li><strong>⌘+Z</strong>: undo delete</li>
-        <li><strong>⌘+⇧+Z</strong>: redo (not implemented)</li>
-        <li><strong>←</strong>/<strong>→</strong>: nudge playhead</li>
-        <li><strong>⌘+←</strong>/<strong>⌘+→</strong>: jump start/end</li>
-        <li><strong>Esc</strong>: clear selection</li>
-      </ul>
-    </details>
+    <div id="status">準備完了</div>
     <div class="bgm-panel">
       <div class="bgm-header">
         <span class="bgm-track-label">BGM</span>
-        <span class="bgm-file-label" id="bgmFileLabel">♪ No BGM loaded</span>
-        <input type="file" id="bgmInput" accept="audio/*" />
-        <button type="button" id="addBgm">Add block</button>
-        <button type="button" id="mixBgm" disabled>Mix</button>
       </div>
-      <div class="bgm-drop">Drag & drop a BGM file onto the timeline to load it.</div>
       <div id="bgmTimelineWrap">
         <div id="bgmTimeline">
+          <div class="bgm-placeholder" id="bgmPlaceholder">BGMを追加</div>
           <div id="bgmMarkers"></div>
           <div id="bgmWaveform"></div>
           <span class="track-playhead" id="bgmPlayhead"></span>
@@ -348,18 +654,46 @@
         </div>
       </div>
       <div class="bgm-info">
-        <span>Start <strong id="bgmStart">--:--.--</strong></span>
-        <span>End <strong id="bgmEnd">--:--.--</strong></span>
-        <label>Volume <input type="range" id="bgmVolume" min="0" max="1" step="0.05" value="0.25" disabled></label>
-        <label>Fade In <input type="number" id="bgmFadeIn" min="0" step="0.1" value="3" disabled></label>
-        <label>Fade Out <input type="number" id="bgmFadeOut" min="0" step="0.1" value="3" disabled></label>
+        <span>開始 <strong id="bgmStart">--:--.--</strong></span>
+        <span>終了 <strong id="bgmEnd">--:--.--</strong></span>
+        <label><span>音量</span><input type="range" id="bgmVolume" min="0" max="1" step="0.05" value="0.25" disabled></label>
+        <label><span>フェードイン</span><input type="number" id="bgmFadeIn" min="0" step="0.1" value="3" disabled></label>
+        <label><span>フェードアウト</span><input type="number" id="bgmFadeOut" min="0" step="0.1" value="3" disabled></label>
       </div>
+    </div>
+    <div class="shortcuts-panel" id="shortcutsPanel">
+      <h2>ショートカット</h2>
+      <ul>
+        <li><strong>Space</strong>: 再生/停止</li>
+        <li><strong>Shift+I</strong>/<strong>Shift+O</strong>: 範囲開始/終了</li>
+        <li><strong>D</strong>: 範囲削除</li>
+        <li><strong>⌘+Z</strong>: 削除を戻す</li>
+        <li><strong>⌘+⇧+Z</strong>: やり直し(未対応)</li>
+        <li><strong>←</strong>/<strong>→</strong>: 再生位置を微調整</li>
+        <li><strong>⌘+←</strong>/<strong>⌘+→</strong>: 先頭/末尾へ移動</li>
+        <li><strong>E</strong>: 書き出し</li>
+        <li><strong>Esc</strong>: 選択解除</li>
+        <li><strong>?</strong>: ショートカット表示</li>
+      </ul>
     </div>
   </div>
 
   <script>
     const fileInput = document.getElementById("fileInput");
     const fileLabel = document.getElementById("fileLabel");
+    const playBtn = document.getElementById("playBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const filePickerBtn = document.getElementById("filePickerBtn");
+    const bgmPickerBtn = document.getElementById("bgmPickerBtn");
+    const recordBtn = document.getElementById("recordBtn");
+    const recordStopBtn = document.getElementById("recordStopBtn");
+    const emptyRecordBtn = document.getElementById("emptyRecordBtn");
+    const recordingOverlay = document.getElementById("recordingOverlay");
+    const recordTimer = document.getElementById("recordTimer");
+    const recordingCanvas = document.getElementById("recordingCanvas");
+    const recordingPanel = document.getElementById("recordingPanel");
+    const punchBtn = document.getElementById("punchBtn");
+    const punchInfo = document.getElementById("punchInfo");
     const statusEl = document.getElementById("status");
     const currentTimeEl = document.getElementById("currentTime");
     const durationEl = document.getElementById("duration");
@@ -367,15 +701,17 @@
     const selectionEndEl = document.getElementById("selectionEnd");
     const selectionIndicatorEl = document.getElementById("selectionIndicator");
     const editorEl = document.getElementById("editor");
-    const zoomLevelEl = document.getElementById("zoomLevel");
-    const resetZoomBtn = document.getElementById("resetZoom");
+      const zoomLevelEl = document.getElementById("zoomLevel");
+      const resetZoomBtn = document.getElementById("resetZoom");
     const waveformWrap = document.getElementById("waveformWrap");
+    const waveformEl = document.getElementById("waveform");
     const bgmTimelineWrap = document.getElementById("bgmTimelineWrap");
     const bgmTimeline = document.getElementById("bgmTimeline");
     const bgmLane = document.getElementById("bgmLane");
     const bgmMarkers = document.getElementById("bgmMarkers");
     const bgmWaveformEl = document.getElementById("bgmWaveform");
     const bgmInput = document.getElementById("bgmInput");
+    const bgmPlaceholder = document.getElementById("bgmPlaceholder");
     const addBgmBtn = document.getElementById("addBgm");
     const mixBgmBtn = document.getElementById("mixBgm");
     const bgmFileLabel = document.getElementById("bgmFileLabel");
@@ -394,6 +730,7 @@
     let selection = { start: null, end: null };
     let activeObjectUrl = null;
     let autoMode = false;
+    let hasVoiceAudio = false;
     let pendingSeekTime = null;
     let pendingPlay = false;
     let busy = false;
@@ -417,6 +754,27 @@
     let previewGain = null;
     const bgmDefaultVolume = 0.25;
     const bgmDefaultFade = 3;
+    let mediaRecorder = null;
+    let recordingStream = null;
+    let recordingChunks = [];
+    let recordingActive = false;
+    let recordingStartTime = 0;
+    let recordingTimerId = null;
+    let recordingAnimationId = null;
+    let recordingLastFrame = 0;
+    let recordingLastTimerSecond = null;
+    let recordingAudioContext = null;
+    let recordingAnalyser = null;
+    let recordingSource = null;
+    let recordingMode = "new";
+    let recordingFocusTime = 0;
+    let recordingMimeType = "";
+    const LONG_RECORDING_SECONDS = 20 * 60;
+    let punchSelection = null;
+    let recordingDirty = false;
+    let showControlsTimeout = null;
+    let statusAutoHideTimeout = null;
+    let statusAutoVisible = false;
 
     const formatSeconds = (value) => {
       if (value === null || Number.isNaN(value)) {
@@ -437,23 +795,85 @@
       return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}.${String(ms).padStart(2, "0")}`;
     };
 
+    const pickRecordingMimeType = () => {
+      if (typeof MediaRecorder === "undefined" || !MediaRecorder.isTypeSupported) {
+        return "";
+      }
+      const candidates = [
+        "audio/webm;codecs=opus",
+        "audio/webm",
+        "audio/ogg;codecs=opus",
+        "audio/ogg",
+      ];
+      return candidates.find((type) => MediaRecorder.isTypeSupported(type)) || "";
+    };
+
+    const mimeTypeToExtension = (mimeType) => {
+      if (!mimeType) return null;
+      if (mimeType.includes("webm")) return "webm";
+      if (mimeType.includes("ogg")) return "ogg";
+      if (mimeType.includes("wav")) return "wav";
+      return null;
+    };
+
+    recordingMimeType = pickRecordingMimeType();
+
     const updateStatus = (text, isError = false) => {
       statusEl.textContent = text;
       statusEl.classList.toggle("error", isError);
+      const shouldShow = isError || text.includes("?file=") || text.includes("書き出し完了") || text.includes("録音中");
+      if (!shouldShow) return;
+      if (!editorEl.classList.contains("show-status")) {
+        editorEl.classList.add("show-status");
+        statusAutoVisible = true;
+      }
+      if (statusAutoHideTimeout) {
+        clearTimeout(statusAutoHideTimeout);
+      }
+      statusAutoHideTimeout = setTimeout(() => {
+        if (statusAutoVisible) {
+          editorEl.classList.remove("show-status");
+        }
+        statusAutoVisible = false;
+        if (!editorEl.classList.contains("show-status") && !statusEl.classList.contains("error")) {
+          statusEl.textContent = "準備完了";
+        }
+      }, 4000);
     };
 
     const updateSelectionUI = () => {
-      selectionStartEl.textContent = selection.start === null ? "--:--.--" : formatTime(selection.start);
-      selectionEndEl.textContent = selection.end === null ? "--:--.--" : formatTime(selection.end);
+      if (selectionStartEl) {
+        selectionStartEl.textContent = selection.start === null ? "--:--.--" : formatTime(selection.start);
+      }
+      if (selectionEndEl) {
+        selectionEndEl.textContent = selection.end === null ? "--:--.--" : formatTime(selection.end);
+      }
       const hasSelection = selection.start !== null && selection.end !== null;
-      editorEl.classList.toggle("selection-active", hasSelection);
-      selectionIndicatorEl.textContent = hasSelection ? "Selection active" : "No selection";
+      if (editorEl) {
+        editorEl.classList.toggle("selection-active", hasSelection);
+      }
+      if (selectionIndicatorEl) {
+        selectionIndicatorEl.textContent = hasSelection ? "選択中" : "未選択";
+      }
+      if (punchBtn) {
+        punchBtn.hidden = !hasSelection;
+      }
     };
 
-    const updateZoomUI = () => {
-      zoomLevelEl.textContent = `${Math.round(zoomLevel)}`;
-      resetZoomBtn.disabled = zoomLevel === zoomBase;
-    };
+      const updateEmptyState = () => {
+        if (editorEl) {
+          editorEl.classList.toggle("has-voice", hasVoiceAudio);
+        }
+      };
+
+      const updateZoomUI = () => {
+        if (zoomLevelEl) {
+          zoomLevelEl.textContent = `${Math.round(zoomLevel)}`;
+        }
+        if (resetZoomBtn) {
+          resetZoomBtn.disabled = zoomLevel === zoomBase;
+        }
+      };
 
     const applyZoom = (value) => {
       if (!wavesurfer) return;
@@ -472,15 +892,314 @@
       bgmTimelineWrap.scrollLeft = 0;
     };
 
+    const updatePlayControls = () => {
+      const isPlaying = wavesurfer ? wavesurfer.isPlaying() : false;
+      if (playBtn) {
+        playBtn.textContent = isPlaying ? "一時停止" : "再生";
+      }
+      if (stopBtn) {
+        stopBtn.disabled = !wavesurfer;
+      }
+    };
+
+    const updateRecordingUI = () => {
+      document.body.classList.toggle("recording-active", recordingActive);
+      document.body.classList.toggle("recording-modal", recordingActive);
+      if (recordBtn) {
+        recordBtn.classList.toggle("recording", recordingActive);
+        recordBtn.textContent = recordingActive ? "録音中" : "録音";
+        recordBtn.disabled = recordingActive;
+      }
+      if (recordStopBtn) {
+        recordStopBtn.disabled = !recordingActive;
+      }
+      if (punchInfo) {
+        punchInfo.hidden = !(recordingActive && recordingMode === "punch");
+      }
+      if (editorEl) {
+        editorEl.classList.toggle("punch-active", recordingActive && recordingMode === "punch");
+        editorEl.classList.toggle("minimal", !recordingActive);
+      }
+      if (!recordingActive) {
+        if (recordTimer) {
+          recordTimer.textContent = "00:00";
+        }
+        resizeRecordingCanvas();
+      } else {
+        updateStatus("録音中…");
+        if (editorEl && editorEl.classList.contains("show-status")) {
+          editorEl.classList.remove("show-status");
+        }
+        positionRecordingOverlay();
+      }
+      updateEmptyState();
+    };
+
+    const formatTimer = (seconds) => {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    };
+
+    const updateRecordingTimer = () => {
+      if (!recordingActive) return;
+      const elapsed = Math.max(0, (Date.now() - recordingStartTime) / 1000);
+      const rounded = Math.floor(elapsed);
+      if (rounded !== recordingLastTimerSecond) {
+        recordTimer.textContent = formatTimer(elapsed);
+        recordingLastTimerSecond = rounded;
+      }
+      recordingTimerId = requestAnimationFrame(updateRecordingTimer);
+    };
+
+    const resizeRecordingCanvas = () => {
+      if (!recordingCanvas) return { width: 0, height: 0 };
+      const ratio = window.devicePixelRatio || 1;
+      const width = Math.max(1, Math.floor(recordingCanvas.clientWidth * ratio));
+      const height = Math.max(1, Math.floor(recordingCanvas.clientHeight * ratio));
+      if (recordingCanvas.width !== width) {
+        recordingCanvas.width = width;
+      }
+      if (recordingCanvas.height !== height) {
+        recordingCanvas.height = height;
+      }
+      return { width, height };
+    };
+
+    const drawRecordingWaveform = () => {
+      if (!recordingActive || !recordingAnalyser || !recordingCanvas) return;
+      const now = performance.now();
+      if (now - recordingLastFrame < 120) {
+        recordingAnimationId = requestAnimationFrame(drawRecordingWaveform);
+        return;
+      }
+      recordingLastFrame = now;
+      const canvas = recordingCanvas;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      const { width, height } = resizeRecordingCanvas();
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      const bufferLength = recordingAnalyser.fftSize;
+      const dataArray = new Uint8Array(bufferLength);
+      recordingAnalyser.getByteTimeDomainData(dataArray);
+      ctx.clearRect(0, 0, width, height);
+      ctx.fillStyle = "#1e1c1a";
+      ctx.fillRect(0, 0, width, height);
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = "#7fa8a6";
+      ctx.shadowColor = "rgba(127, 168, 166, 0.16)";
+      ctx.shadowBlur = 6;
+      ctx.globalAlpha = 0.9;
+      ctx.beginPath();
+      const sliceWidth = width / bufferLength;
+      let x = 0;
+      const smoothingWindow = 20;
+      for (let i = 0; i < bufferLength; i += 1) {
+        let sum = 0;
+        let count = 0;
+        for (let j = 0; j < smoothingWindow; j += 1) {
+          const idx = Math.min(bufferLength - 1, i + j);
+          sum += dataArray[idx];
+          count += 1;
+        }
+        const centered = (sum / count - 128) / 128.0;
+        const eased = Math.tanh(centered * 1.9);
+        const y = (height / 2) + eased * (height * 0.42);
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+        x += sliceWidth;
+      }
+      ctx.lineTo(width, height / 2);
+      ctx.stroke();
+      recordingAnimationId = requestAnimationFrame(drawRecordingWaveform);
+    };
+
+    const stopRecordingAnimation = () => {
+      if (recordingAnimationId) {
+        cancelAnimationFrame(recordingAnimationId);
+        recordingAnimationId = null;
+      }
+      if (recordingTimerId) {
+        cancelAnimationFrame(recordingTimerId);
+        recordingTimerId = null;
+      }
+    };
+
+    const stopRecordingStream = async () => {
+      if (recordingSource) {
+        recordingSource.disconnect();
+        recordingSource = null;
+      }
+      if (recordingAnalyser) {
+        recordingAnalyser.disconnect();
+        recordingAnalyser = null;
+      }
+      if (recordingAudioContext) {
+        await recordingAudioContext.close();
+        recordingAudioContext = null;
+      }
+      if (recordingStream) {
+        recordingStream.getTracks().forEach((track) => track.stop());
+        recordingStream = null;
+      }
+    };
+
+    const encodeWav = (audioBuffer) => {
+      const numChannels = audioBuffer.numberOfChannels;
+      const sampleRate = audioBuffer.sampleRate;
+      const length = audioBuffer.length * numChannels * 2 + 44;
+      const buffer = new ArrayBuffer(length);
+      const view = new DataView(buffer);
+      const writeString = (offset, value) => {
+        for (let i = 0; i < value.length; i += 1) {
+          view.setUint8(offset + i, value.charCodeAt(i));
+        }
+      };
+      const channels = [];
+      for (let i = 0; i < numChannels; i += 1) {
+        channels.push(audioBuffer.getChannelData(i));
+      }
+      let offset = 0;
+      writeString(offset, "RIFF");
+      offset += 4;
+      view.setUint32(offset, length - 8, true);
+      offset += 4;
+      writeString(offset, "WAVE");
+      offset += 4;
+      writeString(offset, "fmt ");
+      offset += 4;
+      view.setUint32(offset, 16, true);
+      offset += 4;
+      view.setUint16(offset, 1, true);
+      offset += 2;
+      view.setUint16(offset, numChannels, true);
+      offset += 2;
+      view.setUint32(offset, sampleRate, true);
+      offset += 4;
+      view.setUint32(offset, sampleRate * numChannels * 2, true);
+      offset += 4;
+      view.setUint16(offset, numChannels * 2, true);
+      offset += 2;
+      view.setUint16(offset, 16, true);
+      offset += 2;
+      writeString(offset, "data");
+      offset += 4;
+      view.setUint32(offset, length - offset - 4, true);
+      offset += 4;
+      let interleavedIndex = 0;
+      const interleavedLength = audioBuffer.length * numChannels;
+      while (interleavedIndex < interleavedLength) {
+        for (let channel = 0; channel < numChannels; channel += 1) {
+          const sample = Math.max(-1, Math.min(1, channels[channel][interleavedIndex / numChannels]));
+          view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+          offset += 2;
+        }
+        interleavedIndex += numChannels;
+      }
+      return new Blob([buffer], { type: "audio/wav" });
+    };
+
+    const getAutoRecordingFileName = (extension = "wav") => `auto-${Date.now()}.${extension}`;
+
+    const uploadRecording = async (blob, filename, shouldReload = true) => {
+      const resolvedName = filename || getAutoRecordingFileName("wav");
+      const formData = new FormData();
+      formData.append("file", blob, resolvedName);
+      console.log("recording upload", { size: blob.size, type: blob.type, filename: resolvedName });
+      updateStatus("保存中…");
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Upload failed (${res.status})`);
+      }
+      const payload = await res.json();
+        console.log("recording upload ok", payload);
+        updateStatus("保存しました。");
+      if (!shouldReload) return payload;
+      await reloadAutoForced(0, false);
+      return payload;
+    };
+
+    const punchInRecording = async (blob, start, end, seekTime = null) => {
+      const formData = new FormData();
+      formData.append("file", blob, "punch.wav");
+      formData.append("start", String(start));
+      formData.append("end", String(end));
+      console.log("punch upload", { size: blob.size, start, end });
+      updateStatus("挿入中…");
+      const res = await fetch("/api/punch", { method: "POST", body: formData });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Punch-in failed (${res.status})`);
+      }
+        console.log("punch upload ok");
+      updateStatus("挿入完了。");
+      await reloadAutoForced(seekTime ?? start, false);
+    };
+
+    const updateRecordingControls = () => {
+      const supported = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      if (recordBtn) {
+        recordBtn.disabled = !supported;
+      }
+      if (recordStopBtn) {
+        recordStopBtn.disabled = !recordingActive;
+      }
+      if (!supported) {
+        if (recordBtn) {
+          recordBtn.textContent = "録音不可";
+        }
+      } else if (!recordingActive) {
+        if (recordBtn) {
+          recordBtn.textContent = "録音";
+        }
+      }
+      if (punchBtn && recordBtn) {
+        punchBtn.disabled = recordBtn.disabled;
+      }
+    };
+
+    const updateBgmPlaceholder = () => {
+      const hasBgm = !!bgmFile;
+      if (bgmPlaceholder) {
+        bgmPlaceholder.hidden = hasBgm;
+      }
+      if (bgmTimelineWrap) {
+        bgmTimelineWrap.classList.toggle("bgm-empty", !hasBgm);
+      }
+    };
+
+    const getTimelineDuration = () => {
+      const voiceDuration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
+      const maxSegmentEnd = bgmSegments.reduce((max, segment) => Math.max(max, segment.end), 0);
+      return Math.max(voiceDuration, bgmDuration, maxSegmentEnd);
+    };
+
+    const refreshTimelineWidth = () => {
+      const duration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
+      if (!duration) return;
+      const timelineDuration = getTimelineDuration();
+      const voiceWidth = Math.max(waveformWrap.clientWidth, duration * timelinePxPerSec);
+      const timelineWidth = Math.max(bgmTimelineWrap.clientWidth, timelineDuration * timelinePxPerSec);
+      bgmTimeline.style.width = `${timelineWidth}px`;
+      if (waveformEl) {
+        waveformEl.style.width = `${voiceWidth}px`;
+      }
+    };
+
     const updateTimelineScale = () => {
       const duration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
       if (!duration) return;
-      timelinePxPerSec = zoomLevel;
-      const width = Math.max(waveformWrap.clientWidth, duration * timelinePxPerSec);
-      bgmTimeline.style.width = `${width}px`;
-      renderMarkers(duration);
+      const baseWidth = Math.max(waveformWrap.clientWidth, duration * zoomLevel);
+      timelinePxPerSec = baseWidth / duration;
+      renderMarkers(getTimelineDuration());
       renderBgmSegments(false);
       updateBgmWaveformWidth();
+      updatePlayheadUI(getPlaybackTime());
     };
 
     const renderMarkers = (duration) => {
@@ -553,6 +1272,7 @@
     };
 
     const renderBgmSegments = (persist = true) => {
+      refreshTimelineWidth();
       bgmLane.innerHTML = "";
       bgmSegments.forEach((segment) => {
         const el = document.createElement("div");
@@ -611,12 +1331,8 @@
       const delta = (event.clientX - dragState.startX) / timelinePxPerSec;
       const segment = dragState.segment;
       const minLength = 0.1;
-      const mainDuration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
       if (dragState.handle === "left") {
         let end = dragState.originalEnd;
-        if (mainDuration) {
-          end = Math.min(end, mainDuration);
-        }
         let nextStart = dragState.originalStart + delta;
         nextStart = Math.max(0, Math.min(nextStart, end - minLength));
         let nextOffset = dragState.originalOffset + (nextStart - dragState.originalStart);
@@ -635,23 +1351,15 @@
         segment.offset = Math.max(0, nextOffset);
       } else if (dragState.handle === "right") {
         const maxEndByFile = dragState.originalStart + (segment.duration - dragState.originalOffset);
-        let maxEnd = maxEndByFile;
-        if (mainDuration) {
-          maxEnd = Math.min(maxEnd, mainDuration);
-        }
         const nextEnd = Math.min(
           Math.max(dragState.originalStart + minLength, dragState.originalEnd + delta),
-          maxEnd
+          maxEndByFile
         );
         segment.end = nextEnd;
         segment.offset = dragState.originalOffset;
       } else {
         const duration = dragState.originalEnd - dragState.originalStart;
-        let maxStart = Infinity;
-        if (mainDuration) {
-          maxStart = Math.max(0, mainDuration - duration);
-        }
-        const nextStart = Math.max(0, Math.min(dragState.originalStart + delta, maxStart));
+        const nextStart = Math.max(0, dragState.originalStart + delta);
         segment.start = nextStart;
         segment.end = nextStart + duration;
         segment.offset = dragState.originalOffset;
@@ -671,20 +1379,13 @@
     };
 
     const addBgmSegment = (file) => {
-      const now = wavesurfer ? wavesurfer.getCurrentTime() : 0;
       const duration = file.duration || 1;
       const mainDuration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
       const minLength = 0.1;
-      let start = now;
-      let end = now + Math.min(duration, 10);
+      let start = 0;
+      let end = Math.max(minLength, duration);
       if (mainDuration) {
-        if (start > mainDuration - minLength) {
-          start = Math.max(0, mainDuration - minLength);
-        }
-        end = Math.min(start + Math.min(duration, 10), mainDuration);
-      }
-      if (end < start + minLength) {
-        end = start + minLength;
+        end = Math.max(minLength, Math.min(duration, mainDuration));
       }
       const segment = {
         id: bgmIdCounter++,
@@ -719,6 +1420,7 @@
         cursorColor: "transparent",
         height: 64,
         normalize: true,
+        pixelRatio: window.devicePixelRatio || 1,
         interact: false,
       });
       bgmWaveSurfer.on("ready", () => {
@@ -728,7 +1430,14 @@
     };
 
     const updateMixAvailability = () => {
-      mixBgmBtn.disabled = !autoMode || bgmSegments.length === 0 || !bgmFile;
+      mixBgmBtn.disabled = !autoMode || !hasVoiceAudio;
+      if (!autoMode) {
+        mixBgmBtn.title = "自動録音でのみ書き出しできます。";
+      } else if (!hasVoiceAudio) {
+        mixBgmBtn.title = "書き出す音声がありません。";
+      } else {
+        mixBgmBtn.title = "";
+      }
     };
 
     const updateBgmWaveformWidth = () => {
@@ -742,7 +1451,7 @@
 
     const ensureBgmUpload = async () => {
       if (!bgmFile) {
-        throw new Error("No BGM file loaded.");
+        throw new Error("BGMが読み込まれていません。");
       }
       if (bgmUploadPath) return bgmUploadPath;
       const uploaded = await uploadBgmFile(bgmFile);
@@ -766,6 +1475,20 @@
       return res.json();
     };
 
+    const stopPreviewMix = () => {
+      previewSources.forEach((source) => {
+        try {
+          source.stop(0);
+        } catch (err) {
+          // ignore
+        }
+      });
+      previewSources = [];
+      if (previewContext && previewContext.state === "running") {
+        previewContext.suspend().catch(() => {});
+      }
+    };
+
     const readDuration = (file) => new Promise((resolve, reject) => {
       const audio = document.createElement("audio");
       const tempUrl = URL.createObjectURL(file);
@@ -776,21 +1499,216 @@
       };
       audio.onerror = () => {
         URL.revokeObjectURL(tempUrl);
-        reject(new Error("Failed to read audio metadata"));
+        reject(new Error("音声メタデータを読み取れませんでした。"));
       };
       audio.src = tempUrl;
     });
 
-    const updatePlayheadUI = (time) => {
-      if (!wavesurfer) return;
-      const duration = wavesurfer.getDuration() || 0;
-      if (!duration) return;
-      const clamped = Math.max(0, Math.min(time, duration));
-      const left = clamped * timelinePxPerSec;
-      voicePlayhead.style.left = `${left}px`;
-      bgmPlayhead.style.left = `${left}px`;
-      currentTimeEl.textContent = formatTime(clamped);
+      const updatePlayheadUI = (time) => {
+        if (!wavesurfer) return;
+        const duration = wavesurfer.getDuration() || 0;
+        if (!duration) return;
+        const clamped = Math.max(0, Math.min(time, duration));
+        const left = clamped * timelinePxPerSec;
+        if (voicePlayhead) {
+          voicePlayhead.style.left = `${left}px`;
+        }
+        if (bgmPlayhead) {
+          bgmPlayhead.style.left = `${left}px`;
+        }
+        if (currentTimeEl) {
+          currentTimeEl.textContent = formatTime(clamped);
+        }
+      };
+
+    const positionRecordingOverlay = () => {
+      if (!recordingActive) return;
+      const modalMode = recordingMode;
+      let top = "50%";
+      let left = "50%";
+      let translateX = "-50%";
+      let translateY = "-50%";
+      let width = "300px";
+      let height = "200px";
+      if (!hasVoiceAudio) {
+        width = "400px";
+        height = "200px";
+      }
+      if (modalMode === "punch" && activeRegion) {
+        const regionEl = activeRegion.element || activeRegion.el;
+        if (regionEl) {
+          const regionRect = regionEl.getBoundingClientRect();
+          const gap = 12;
+          const modalHeight = 200;
+          const desiredTop = regionRect.top - gap - modalHeight;
+          const clampedTop = Math.max(16, desiredTop);
+          top = `${clampedTop}px`;
+          left = `${Math.max(16, Math.min(window.innerWidth - 16, regionRect.left + regionRect.width / 2))}px`;
+          translateX = "-50%";
+          translateY = "0";
+        }
+      }
+      editorEl.style.setProperty("--recording-modal-top", top);
+      editorEl.style.setProperty("--recording-modal-left", left);
+      editorEl.style.setProperty("--recording-modal-translate-x", translateX);
+      editorEl.style.setProperty("--recording-modal-translate-y", translateY);
+      editorEl.style.setProperty("--recording-modal-width", width);
+      editorEl.style.setProperty("--recording-modal-height", height);
     };
+
+    const stopRecording = async () => {
+      if (!recordingActive) return;
+      console.log("recording stop");
+      recordingActive = false;
+      recordingDirty = true;
+      updateRecordingUI();
+      stopRecordingAnimation();
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+    };
+
+    const startRecording = async (mode = "new") => {
+      if (recordingActive) return;
+      console.log("recording start", mode);
+      if (mode === "punch") {
+        if (selection.start !== null && selection.end !== null) {
+          punchSelection = { start: selection.start, end: selection.end };
+        } else {
+          const insertAt = getPlaybackTime();
+          punchSelection = { start: insertAt, end: insertAt };
+        }
+      } else if (mode === "insert") {
+        const insertAt = getPlaybackTime();
+        punchSelection = { start: insertAt, end: insertAt };
+      }
+      recordingFocusTime = (mode === "punch" || mode === "insert") && punchSelection
+        ? punchSelection.start
+        : getPlaybackTime();
+      if (wavesurfer && wavesurfer.isPlaying()) {
+        wavesurfer.pause();
+      }
+      updatePlayControls();
+      recordingMode = mode;
+      try {
+        recordingStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (err) {
+        updateStatus("マイクへのアクセスが拒否されました。", true);
+        return;
+      }
+      if (!recordingStream) {
+        updateStatus("マイク入力が取得できません。", true);
+        return;
+      }
+      recordingChunks = [];
+      mediaRecorder = new MediaRecorder(recordingStream, recordingMimeType ? { mimeType: recordingMimeType } : undefined);
+      mediaRecorder.addEventListener("dataavailable", (event) => {
+        if (event.data && event.data.size > 0) {
+          recordingChunks.push(event.data);
+        }
+      });
+      mediaRecorder.addEventListener("stop", async () => {
+        console.log("=== RECORDING STOPPED ===");
+        console.log(
+          "mode:",
+          recordingMode === "punch" ? "punch-in" : (recordingMode === "insert" ? "insert" : "new")
+        );
+        if (!recordingChunks.length) {
+          updateStatus("録音が空でした。", true);
+          await stopRecordingStream();
+          recordingMode = "new";
+          punchSelection = null;
+          recordingDirty = false;
+          return;
+        }
+        const blob = new Blob(recordingChunks, recordingMimeType ? { type: recordingMimeType } : undefined);
+        const elapsedSeconds = Math.max(0, (Date.now() - recordingStartTime) / 1000);
+        const skipDecode = recordingMode === "new" && elapsedSeconds >= LONG_RECORDING_SECONDS;
+        try {
+          if (skipDecode) {
+            updateStatus("長時間録音のため直接保存します。");
+            const extension = mimeTypeToExtension(blob.type || recordingMimeType) || "webm";
+            await uploadRecording(blob, getAutoRecordingFileName(extension), false);
+            await reloadAutoForced(0, false);
+          } else {
+            updateStatus("録音を処理中…");
+            const arrayBuffer = await blob.arrayBuffer();
+            const audioContext = new AudioContext();
+            try {
+              const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+              console.log("recording decoded", {
+                duration: decoded.duration,
+                sampleRate: decoded.sampleRate,
+                channels: decoded.numberOfChannels,
+              });
+              const wavBlob = encodeWav(decoded);
+              console.log("recording wav", { size: wavBlob.size, type: wavBlob.type });
+            if ((recordingMode === "punch" || recordingMode === "insert") && punchSelection) {
+              const insertSeekTime = recordingMode === "insert"
+                ? punchSelection.start + decoded.duration
+                : null;
+              console.log("calling endpoint:", "/api/punch");
+              await punchInRecording(wavBlob, punchSelection.start, punchSelection.end, insertSeekTime);
+            } else {
+              console.log("calling endpoint:", "/api/upload");
+              await uploadRecording(wavBlob, getAutoRecordingFileName("wav"));
+            }
+            } catch (decodeError) {
+              if (recordingMode === "punch" || recordingMode === "insert") {
+                throw decodeError;
+              }
+              updateStatus("長時間録音のため直接保存します。");
+              const extension = mimeTypeToExtension(blob.type || recordingMimeType) || "webm";
+              await uploadRecording(blob, getAutoRecordingFileName(extension), false);
+              await reloadAutoForced(0, false);
+            } finally {
+              await audioContext.close();
+            }
+          }
+          await stopRecordingStream();
+          recordingMode = "new";
+          punchSelection = null;
+          recordingDirty = false;
+        } catch (err) {
+          console.error(err);
+          updateStatus(`録音に失敗しました: ${err.message}`, true);
+          await stopRecordingStream();
+          recordingMode = "new";
+          punchSelection = null;
+          recordingDirty = true;
+        }
+      });
+      recordingAudioContext = new AudioContext();
+      if (recordingAudioContext.state === "suspended") {
+        await recordingAudioContext.resume();
+      }
+      recordingAnalyser = recordingAudioContext.createAnalyser();
+      recordingAnalyser.fftSize = 2048;
+      recordingSource = recordingAudioContext.createMediaStreamSource(recordingStream);
+      recordingSource.connect(recordingAnalyser);
+      resizeRecordingCanvas();
+      recordingActive = true;
+      recordingStartTime = Date.now();
+      recordTimer.textContent = "00:00";
+      updateRecordingUI();
+      updateRecordingTimer();
+      drawRecordingWaveform();
+      mediaRecorder.start();
+    };
+
+    const stopPlayback = () => {
+      if (!wavesurfer) return;
+      wavesurfer.pause();
+      seekToTime(0);
+      stopPreviewMix();
+      updatePlayControls();
+    };
+
+    window.addEventListener("beforeunload", (event) => {
+      if (!recordingActive && !recordingDirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    });
 
     const getPlaybackTime = () => (wavesurfer ? wavesurfer.getCurrentTime() : 0);
 
@@ -832,6 +1750,28 @@
       }
     };
 
+
+    const toggleStatus = () => {
+      editorEl.classList.toggle("show-status");
+      statusAutoVisible = false;
+      if (statusAutoHideTimeout) {
+        clearTimeout(statusAutoHideTimeout);
+        statusAutoHideTimeout = null;
+      }
+    };
+
+    const showControls = () => {
+      editorEl.classList.add("show-controls");
+      if (showControlsTimeout) {
+        clearTimeout(showControlsTimeout);
+      }
+      showControlsTimeout = setTimeout(() => editorEl.classList.remove("show-controls"), 2500);
+    };
+
+    const toggleShortcuts = () => {
+      editorEl.classList.toggle("show-shortcuts");
+    };
+
     const clampTime = (time) => {
       if (!wavesurfer) return 0;
       const duration = wavesurfer.getDuration() || 0;
@@ -845,9 +1785,7 @@
       const clamped = clampTime(time);
       updatePlayheadUI(clamped);
       previewStartOffset = clamped;
-      if (wavesurfer.isPlaying()) {
-        wavesurfer.seekTo(clamped / duration);
-      }
+      wavesurfer.seekTo(clamped / duration);
     };
 
     const seekBy = (delta) => {
@@ -863,8 +1801,30 @@
       if (activeObjectUrl) {
         URL.revokeObjectURL(activeObjectUrl);
       }
+      console.log("initWaveform", { size: blob.size, type: blob.type, label, isAuto });
       autoMode = isAuto;
-      fileLabel.textContent = label || (isAuto ? "auto" : "Loaded file");
+      fileLabel.textContent = label || (isAuto ? "auto" : "読み込み済み");
+      hasVoiceAudio = true;
+      updateEmptyState();
+      bgmSegments = [];
+      selectedBgmId = null;
+      bgmFile = null;
+      bgmUploadPath = null;
+      bgmDuration = 0;
+      previewBgmBuffer = null;
+      if (bgmWaveSurfer) {
+        bgmWaveSurfer.destroy();
+        bgmWaveSurfer = null;
+      }
+      if (bgmObjectUrl) {
+        URL.revokeObjectURL(bgmObjectUrl);
+        bgmObjectUrl = null;
+      }
+      bgmWaveformEl.style.width = "0px";
+      bgmFileLabel.textContent = "BGM未読込";
+      bgmPanel.classList.remove("bgm-loaded");
+      updateBgmPlaceholder();
+      renderBgmSegments(false);
       selection = { start: null, end: null };
       activeRegion = null;
       updateSelectionUI();
@@ -876,28 +1836,31 @@
       regions = WaveSurfer.Regions.create();
       wavesurfer = WaveSurfer.create({
         container: "#waveform",
-        waveColor: "#6b7280",
-        progressColor: "#60a5fa",
+        waveColor: "#4a9eff",
+        progressColor: "#1e5aa8",
         cursorColor: "transparent",
         height: 160,
         normalize: true,
+        pixelRatio: window.devicePixelRatio || 1,
+        minPxPerSec: 50,
         plugins: [regions],
       });
 
       wavesurfer.on("ready", () => {
-        wavesurfer.setVolume(0);
-        durationEl.textContent = formatTime(wavesurfer.getDuration());
-        currentTimeEl.textContent = formatTime(0);
+        console.log("VOICE duration:", wavesurfer.getDuration());
+        wavesurfer.setVolume(1);
         const duration = wavesurfer.getDuration() || 1;
+        durationEl.textContent = formatTime(duration);
         const wrapWidth = waveformWrap.clientWidth || 1;
         zoomBase = Math.max(1, Math.floor(wrapWidth / duration));
         applyZoom(zoomBase);
         updateTimelineScale();
-        const message = autoMode
-          ? "Ready. Use Space to play, i/o to set selection, d to delete."
-          : "Ready. Use Space to play and i/o to set selection.";
+        refreshTimelineWidth();
+        const message = "再生はスペースキー";
         updateStatus(message);
         updatePlayheadUI(0);
+        updatePlayControls();
+        updateMixAvailability();
         if (pendingSeekTime !== null) {
           seekToTime(pendingSeekTime);
           pendingSeekTime = null;
@@ -915,21 +1878,46 @@
       wavesurfer.on("seek", (progress) => {
         const duration = wavesurfer.getDuration() || 0;
         const time = duration * progress;
+        console.log("seek", time);
         updatePlayheadUI(time);
         previewStartOffset = time;
+        if (wavesurfer.isPlaying()) {
+          startPreviewMix(time);
+        }
+      });
+
+      wavesurfer.on("click", (progress) => {
+        const duration = wavesurfer.getDuration() || 0;
+        const time = duration * progress;
+        console.log("seek", time);
+        updatePlayheadUI(time);
+        previewStartOffset = time;
+        if (duration) {
+          wavesurfer.seekTo(time / duration);
+        }
+      });
+
+      wavesurfer.on("audioprocess", (time) => {
+        console.log("audioprocess", time);
       });
 
       wavesurfer.on("play", () => {
+        console.log("wavesurfer play");
         startPreviewMix(wavesurfer.getCurrentTime());
+        updatePlayControls();
       });
 
       wavesurfer.on("pause", () => {
+        console.log("wavesurfer pause");
         stopPreviewMix();
+        updatePlayControls();
       });
 
       wavesurfer.on("finish", () => {
+        console.log("finish", wavesurfer.getDuration());
         stopPreviewMix();
         updatePlayheadUI(wavesurfer.getDuration());
+        updatePlayControls();
       });
 
       regions.enableDragSelection({
@@ -940,6 +1928,7 @@
         if (activeRegion && activeRegion.id !== region.id) {
           activeRegion.remove();
         }
+        region.element = region.element || region.el || region.wrapper;
         activeRegion = region;
         activeRegion.setOptions({ drag: true, resize: true });
         selection = { start: region.start, end: region.end };
@@ -948,6 +1937,7 @@
 
       regions.on("region-updated", (region) => {
         if (!activeRegion || activeRegion.id !== region.id) return;
+        region.element = region.element || region.el || region.wrapper;
         selection = { start: region.start, end: region.end };
         updateSelectionUI();
       });
@@ -967,33 +1957,44 @@
 
     const loadFromUrl = async (url, label, isAuto, seekTime = null, play = false) => {
       try {
-        updateStatus("Loading audio...");
+        updateStatus("読み込み中…");
         console.log("loadFromUrl fetch", { url, label, isAuto });
         const res = await fetch(url, { cache: "no-store" });
         if (!res.ok) {
+          if (isAuto && res.status === 404) {
+            hasVoiceAudio = false;
+            updateMixAvailability();
+        updateStatus("準備完了");
+            updateEmptyState();
+            return;
+          }
           throw new Error(`Failed to load ${url}`);
         }
         const blob = await res.blob();
         console.log("loadFromUrl blob", { size: blob.size, type: blob.type });
+        const headerBuffer = await blob.slice(0, 12).arrayBuffer();
+        console.log("loadFromUrl blob header", { bytes: Array.from(new Uint8Array(headerBuffer)) });
         pendingSeekTime = seekTime;
         pendingPlay = play;
         initWaveform(blob, label, isAuto);
+        updatePlayControls();
       } catch (err) {
         console.error(err);
-        updateStatus(`Load failed: ${err.message}`, true);
+        updateStatus(`読み込みに失敗しました: ${err.message}`, true);
       }
     };
 
-    const reloadAuto = async (seekTime, play) => {
+    const reloadAuto = async (seekTime, play, url = "/api/auto") => {
       if (!autoMode) {
-        updateStatus("Delete/undo requires ?file=auto.", true);
+        updateStatus("自動録音のみ削除できます。", true);
         return;
       }
-      const cacheBust = `/api/auto?t=${Date.now()}`;
+      const cacheBust = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
       console.log("reloadAuto", { cacheBust, seekTime, play });
       stopPreviewMix();
       if (wavesurfer) {
         wavesurfer.pause();
+        wavesurfer.empty?.();
       }
       if (activeObjectUrl) {
         URL.revokeObjectURL(activeObjectUrl);
@@ -1002,29 +2003,30 @@
       await loadFromUrl(cacheBust, "auto", true, seekTime, play);
     };
 
-    const reloadAutoForced = async (seekTime, play) => {
+    const reloadAutoForced = async (seekTime, play, url = "/api/auto") => {
       autoMode = true;
-      await reloadAuto(seekTime, play);
+      console.log("reloadAutoForced");
+      await reloadAuto(seekTime, play, url);
     };
 
     const deleteSelection = async () => {
       console.log("deleteSelection called", { selection, autoMode, busy });
       if (busy) return;
       if (!selection.start && selection.start !== 0 || selection.end === null) {
-        updateStatus("No selection to delete.", true);
+        updateStatus("範囲が選択されていません。", true);
         return;
       }
       if (!autoMode) {
         console.log("deleteSelection skipping server delete (non-auto mode)");
         clearSelection();
-        updateStatus("Selection cleared (local only).");
+        updateStatus("選択を解除しました。");
         return;
       }
       const start = selection.start;
       const end = selection.end;
       const duration = end - start;
       if (duration <= 0) {
-        updateStatus("Invalid selection.", true);
+        updateStatus("範囲が不正です。", true);
         return;
       }
       console.log("deleteSelection range", { start, end, duration });
@@ -1038,7 +2040,7 @@
       }
       busy = true;
       wavesurfer.pause();
-      updateStatus("Deleting selection...");
+      updateStatus("削除中…");
       try {
         console.log("deleteSelection sending request", { start, end });
         const res = await fetch("/api/delete", {
@@ -1055,10 +2057,10 @@
         console.log("deleteSelection clearing selection + reload");
         clearSelection();
         await reloadAuto(targetTime, wasPlaying);
-        updateStatus("Deleted selection.");
+      updateStatus("削除しました。");
       } catch (err) {
         console.error(err);
-        updateStatus(`Delete failed: ${err.message}`, true);
+        updateStatus(`削除に失敗しました: ${err.message}`, true);
       } finally {
         busy = false;
       }
@@ -1067,14 +2069,14 @@
     const undoDelete = async () => {
       if (busy) return;
       if (!autoMode) {
-        updateStatus("Undo only works with ?file=auto.", true);
+        updateStatus("自動録音のみ元に戻せます。", true);
         return;
       }
       const currentTime = getPlaybackTime();
       const wasPlaying = wavesurfer.isPlaying();
       busy = true;
       wavesurfer.pause();
-      updateStatus("Restoring previous audio...");
+      updateStatus("復元中…");
       try {
         const res = await fetch("/api/undo", { method: "POST" });
         if (!res.ok) {
@@ -1083,22 +2085,23 @@
         }
         clearSelection();
         await reloadAuto(currentTime, wasPlaying);
-        updateStatus("Undo complete.");
+        updateStatus("復元しました。");
       } catch (err) {
         console.error(err);
-        updateStatus(`Undo failed: ${err.message}`, true);
+        updateStatus(`復元に失敗しました: ${err.message}`, true);
       } finally {
         busy = false;
       }
     };
 
-    fileInput.addEventListener("change", (evt) => {
-      const file = evt.target.files?.[0];
-      if (!file) return;
-      fileInput.blur();
+    if (fileInput) {
+      fileInput.addEventListener("change", (evt) => {
+        const file = evt.target.files?.[0];
+        if (!file) return;
+        fileInput.blur();
       const formData = new FormData();
       formData.append("file", file, file.name);
-      updateStatus("Uploading audio...");
+      updateStatus("アップロード中…");
       fetch("/api/upload", { method: "POST", body: formData })
         .then((res) => {
           if (!res.ok) {
@@ -1109,92 +2112,257 @@
           return res.json();
         })
         .then(() => {
-          updateStatus("Upload complete.");
+          updateStatus("アップロード完了。");
           previewStartOffset = 0;
           reloadAutoForced(0, false);
         })
         .catch((err) => {
           console.error(err);
-          updateStatus(`Upload failed: ${err.message}`, true);
+          updateStatus(`アップロードに失敗しました: ${err.message}`, true);
         });
-    });
+        showControls();
+      });
+    }
 
-    resetZoomBtn.addEventListener("click", () => {
-      if (!wavesurfer) return;
-      resetZoom();
-    });
+    if (resetZoomBtn) {
+      resetZoomBtn.addEventListener("click", () => {
+        if (!wavesurfer) return;
+        resetZoom();
+      });
+    }
 
-    waveformWrap.addEventListener("wheel", (event) => {
-      if (!wavesurfer) return;
-      if (!event.ctrlKey) return;
-      event.preventDefault();
-      const direction = event.deltaY < 0 ? 1 : -1;
-      const step = Math.max(5, Math.round(zoomLevel * 0.1));
-      const next = Math.max(zoomBase, zoomLevel + direction * step);
-      applyZoom(next);
-    }, { passive: false });
+    if (waveformWrap) {
+      waveformWrap.addEventListener("click", () => {
+        if (recordingActive || hasVoiceAudio || wavesurfer) return;
+        if (recordBtn.disabled) {
+          updateStatus("録音はこのブラウザで利用できません。", true);
+          return;
+        }
+        startRecording();
+        showControls();
+      });
+    }
 
-    waveformWrap.addEventListener("scroll", () => {
-      if (syncingScroll) return;
-      syncingScroll = true;
-      bgmTimelineWrap.scrollLeft = waveformWrap.scrollLeft;
-      syncingScroll = false;
-    });
+    if (emptyRecordBtn) {
+      emptyRecordBtn.addEventListener("click", () => {
+        if (recordBtn.disabled) {
+          updateStatus("録音はこのブラウザで利用できません。", true);
+          return;
+        }
+        if (recordingActive) return;
+        recordingMode = "new";
+        startRecording("new");
+        showControls();
+      });
+    }
 
-    bgmTimelineWrap.addEventListener("scroll", () => {
-      if (syncingScroll) return;
-      syncingScroll = true;
-      waveformWrap.scrollLeft = bgmTimelineWrap.scrollLeft;
-      syncingScroll = false;
-    });
+    if (recordBtn) {
+      recordBtn.addEventListener("click", () => {
+        if (recordBtn.disabled) {
+          updateStatus("録音はこのブラウザで利用できません。", true);
+          return;
+        }
+        if (recordingActive) return;
+        startRecording(recordingMode === "punch" ? "punch" : "new");
+        showControls();
+      });
+    }
 
-    bgmTimelineWrap.addEventListener("click", (event) => {
-      if (event.detail > 1) return;
-      selectBgm(null);
-    });
+    if (recordStopBtn) {
+      recordStopBtn.addEventListener("click", () => {
+        if (recordingActive) {
+          stopRecording();
+        }
+        showControls();
+      });
+    }
 
-    bgmVolumeEl.addEventListener("input", () => {
-      const segment = bgmSegments.find((item) => item.id === selectedBgmId);
-      if (!segment) return;
-      segment.volume = parseFloat(bgmVolumeEl.value);
-      if (previewGain) {
-        previewGain.gain.value = segment.volume;
-      }
-      persistLayout();
-    });
+    if (punchBtn) {
+      punchBtn.addEventListener("click", () => {
+        if (recordBtn.disabled) {
+          updateStatus("録音はこのブラウザで利用できません。", true);
+          return;
+        }
+        if (recordingActive) {
+          stopRecording();
+          return;
+        }
+        if (selection.start === null || selection.end === null) {
+          updateStatus("差し替えたい範囲を選択してください。", true);
+          return;
+        }
+        startRecording("punch");
+        showControls();
+      });
+    }
 
-    bgmFadeInEl.addEventListener("change", () => {
-      const segment = bgmSegments.find((item) => item.id === selectedBgmId);
-      if (!segment) return;
-      segment.fadeIn = Math.max(0, parseFloat(bgmFadeInEl.value || 0));
-      persistLayout();
-    });
+    if (playBtn) {
+      playBtn.addEventListener("click", () => {
+        if (!wavesurfer) {
+          updateStatus("VOICEを読み込んでください。", true);
+          return;
+        }
+        if (wavesurfer.isPlaying()) {
+          wavesurfer.pause();
+        } else {
+          wavesurfer.play();
+        }
+        updatePlayControls();
+        showControls();
+      });
+    }
 
-    bgmFadeOutEl.addEventListener("change", () => {
-      const segment = bgmSegments.find((item) => item.id === selectedBgmId);
-      if (!segment) return;
-      segment.fadeOut = Math.max(0, parseFloat(bgmFadeOutEl.value || 0));
-      persistLayout();
-    });
+    if (stopBtn) {
+      stopBtn.addEventListener("click", () => {
+        if (recordingActive) {
+          stopRecording();
+          return;
+        }
+        if (!wavesurfer) return;
+        stopPlayback();
+        showControls();
+      });
+    }
 
-    const stopPreviewMix = () => {
-      previewSources.forEach((source) => {
-        try {
-          source.stop(0);
-        } catch (err) {
-          // ignore
+    if (filePickerBtn) {
+      filePickerBtn.addEventListener("click", () => {
+        fileInput.click();
+        showControls();
+      });
+    }
+
+    if (bgmPickerBtn) {
+      bgmPickerBtn.addEventListener("click", () => {
+        bgmInput.click();
+        showControls();
+      });
+    }
+
+
+
+    if (waveformWrap) {
+      waveformWrap.addEventListener("wheel", (event) => {
+        if (!wavesurfer) return;
+        if (!event.ctrlKey) return;
+        event.preventDefault();
+        const direction = event.deltaY < 0 ? 1 : -1;
+        const step = Math.max(5, Math.round(zoomLevel * 0.1));
+        const next = Math.max(zoomBase, zoomLevel + direction * step);
+        applyZoom(next);
+      }, { passive: false });
+    }
+
+    if (editorEl) {
+      editorEl.addEventListener("mousemove", (event) => {
+        if (recordingActive) return;
+        const rect = editorEl.getBoundingClientRect();
+        if (rect.bottom - event.clientY < 120) {
+          showControls();
         }
       });
-      previewSources = [];
-    };
+    }
+
+    if (waveformWrap) {
+      waveformWrap.addEventListener("mousemove", (event) => {
+        const rect = waveformWrap.getBoundingClientRect();
+        const nearTop = event.clientY - rect.top <= 32;
+        waveformWrap.classList.toggle("show-zoom", nearTop);
+      });
+    }
+
+    if (waveformWrap) {
+      waveformWrap.addEventListener("mouseleave", () => {
+        waveformWrap.classList.remove("show-zoom");
+      });
+    }
+
+    if (waveformWrap) {
+      waveformWrap.addEventListener("scroll", () => {
+        if (syncingScroll) return;
+        syncingScroll = true;
+        bgmTimelineWrap.scrollLeft = waveformWrap.scrollLeft;
+        syncingScroll = false;
+        if (recordingActive) {
+          // overlay is fixed in corner; no position update needed
+        }
+      });
+    }
+
+    if (bgmTimelineWrap) {
+      bgmTimelineWrap.addEventListener("scroll", () => {
+        if (syncingScroll) return;
+        syncingScroll = true;
+        waveformWrap.scrollLeft = bgmTimelineWrap.scrollLeft;
+        syncingScroll = false;
+        if (recordingActive) {
+          // overlay is fixed in corner; no position update needed
+        }
+      });
+    }
+
+
+    if (bgmTimelineWrap) {
+      bgmTimelineWrap.addEventListener("click", (event) => {
+        if (!bgmFile) {
+          bgmInput.click();
+          showControls();
+          return;
+        }
+        if (event.detail > 1) return;
+        selectBgm(null);
+        showControls();
+      });
+    }
+
+    if (bgmVolumeEl) {
+      bgmVolumeEl.addEventListener("input", () => {
+        const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+        if (!segment) return;
+        segment.volume = parseFloat(bgmVolumeEl.value);
+        persistLayout();
+        if (wavesurfer && wavesurfer.isPlaying()) {
+          startPreviewMix(wavesurfer.getCurrentTime());
+        }
+      });
+    }
+
+    if (bgmFadeInEl) {
+      bgmFadeInEl.addEventListener("change", () => {
+        const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+        if (!segment) return;
+        segment.fadeIn = Math.max(0, parseFloat(bgmFadeInEl.value || 0));
+        persistLayout();
+        if (wavesurfer && wavesurfer.isPlaying()) {
+          startPreviewMix(wavesurfer.getCurrentTime());
+        }
+      });
+    }
+
+    if (bgmFadeOutEl) {
+      bgmFadeOutEl.addEventListener("change", () => {
+        const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+        if (!segment) return;
+        segment.fadeOut = Math.max(0, parseFloat(bgmFadeOutEl.value || 0));
+        persistLayout();
+        if (wavesurfer && wavesurfer.isPlaying()) {
+          startPreviewMix(wavesurfer.getCurrentTime());
+        }
+      });
+    }
 
     const loadPreviewBuffers = async () => {
       if (!previewContext) {
         previewContext = new AudioContext();
       }
       if (!previewBgmBuffer && bgmFile) {
-        const bgmData = await bgmFile.arrayBuffer();
-        previewBgmBuffer = await previewContext.decodeAudioData(bgmData.slice(0));
+        try {
+          const bgmData = await bgmFile.arrayBuffer();
+          previewBgmBuffer = await previewContext.decodeAudioData(bgmData.slice(0));
+        } catch (err) {
+          console.error(err);
+          updateStatus("BGMのプレビューを再生できませんでした。", true);
+          previewBgmBuffer = null;
+        }
       }
     };
 
@@ -1210,229 +2378,396 @@
       if (previewContext && previewContext.state === "suspended") {
         await previewContext.resume();
       }
-      previewGain = previewContext.createGain();
-      previewGain.gain.value = parseFloat(bgmVolumeEl.value || 0);
-      previewGain.connect(previewContext.destination);
+      const mixGain = previewContext.createGain();
+      mixGain.gain.value = 1;
+      mixGain.connect(previewContext.destination);
       const offset = Math.max(0, offsetSeconds);
       bgmSegments.forEach((segment) => {
         const segDuration = Math.max(0, segment.end - segment.start);
         if (!segDuration) return;
         const bgmSource = previewContext.createBufferSource();
         bgmSource.buffer = previewBgmBuffer;
-        bgmSource.connect(previewGain);
+        const segmentGain = previewContext.createGain();
+        segmentGain.gain.value = Number(segment.volume) || bgmDefaultVolume;
+        segmentGain.connect(mixGain);
+        const fadeIn = Math.max(0, Math.min(segment.fadeIn, segDuration));
+        const fadeOut = Math.max(0, Math.min(segment.fadeOut, segDuration));
+        const fadeOutStart = Math.max(0, segDuration - fadeOut);
         const segStart = segment.start;
         if (segStart + segDuration <= offset) return;
         const relativeStart = Math.max(0, segStart - offset);
         const segOffset = Math.max(0, segment.offset + (offset - segStart > 0 ? offset - segStart : 0));
         const playDuration = Math.max(0, segDuration - (offset - segStart > 0 ? offset - segStart : 0));
         if (playDuration <= 0) return;
-        bgmSource.start(previewContext.currentTime + relativeStart, segOffset, playDuration);
+        const now = previewContext.currentTime + relativeStart;
+        segmentGain.gain.setValueAtTime(segmentGain.gain.value, now);
+        if (fadeIn > 0) {
+          segmentGain.gain.setValueAtTime(0, now);
+          segmentGain.gain.linearRampToValueAtTime(segmentGain.gain.value, now + fadeIn);
+        }
+        if (fadeOut > 0 && playDuration > fadeOutStart) {
+          const fadeStart = now + Math.min(playDuration, fadeOutStart);
+          segmentGain.gain.setValueAtTime(segmentGain.gain.value, fadeStart);
+          segmentGain.gain.linearRampToValueAtTime(0, fadeStart + fadeOut);
+        }
+        bgmSource.connect(segmentGain);
+        bgmSource.start(now, segOffset, playDuration);
         previewSources.push(bgmSource);
       });
+      previewGain = mixGain;
     };
 
 
-    mixBgmBtn.addEventListener("click", async () => {
-      if (!autoMode) {
-        updateStatus("Mix requires ?file=auto.", true);
-        return;
+    const downloadFile = (fileName) => {
+      const downloadUrl = `/api/auto?file=${encodeURIComponent(fileName)}`;
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    };
+
+    const getExportFileName = (suffix) => `clipod-${new Date().toISOString().replace(/[:.]/g, "")}-${suffix}.wav`;
+
+    const exportVoiceOnly = async () => {
+      const outputName = getExportFileName("voice");
+      const res = await fetch("/api/mix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ output: outputName, use_bgm: false }),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Export failed (${res.status})`);
       }
-      if (!bgmFile) {
-        updateStatus("Load a BGM file first.", true);
-        return;
+      const output = await res.json();
+      const fileName = output.output || outputName;
+      updateStatus(`書き出し完了: ${fileName}`);
+      downloadFile(fileName);
+    };
+
+    const exportWithBgm = async () => {
+      updateStatus("書き出し中…");
+      await ensureBgmUpload();
+      const segments = bgmSegments
+        .filter((segment) => (segment.end - segment.start) > 0)
+        .map((segment) => ({
+          ...segment,
+          file: segment.file || bgmUploadPath,
+          offset: Math.max(0, segment.offset),
+          volume: Number(segment.volume) || bgmDefaultVolume,
+          fadeIn: Number(segment.fadeIn) || bgmDefaultFade,
+          fadeOut: Number(segment.fadeOut) || bgmDefaultFade,
+        }));
+      if (segments.length === 0) {
+        throw new Error("有効なBGMがありません。");
       }
-      updateStatus("Mixing BGM...");
-      try {
-        await ensureBgmUpload();
-        const segments = bgmSegments
-          .filter((segment) => (segment.end - segment.start) > 0)
-          .map((segment) => ({
-            ...segment,
-            file: segment.file || bgmUploadPath,
-            offset: Math.max(0, segment.offset),
-            volume: Number(segment.volume) || bgmDefaultVolume,
-            fadeIn: Number(segment.fadeIn) || bgmDefaultFade,
-            fadeOut: Number(segment.fadeOut) || bgmDefaultFade,
-          }));
-        if (segments.length === 0) {
-          throw new Error("No valid BGM segments to mix.");
-        }
-        const layout = {
-          version: 1,
-          segments: segments.map((segment) => ({
-            file: segment.file,
-            name: segment.name,
-            start: segment.start,
-            end: segment.end,
-            offset: segment.offset,
-            volume: segment.volume,
-            fade_in: segment.fadeIn,
-            fade_out: segment.fadeOut,
-          })),
-        };
-        const res = await fetch("/api/bgm/layout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(layout),
-        });
-        if (!res.ok) {
-          const text = await res.text();
-          throw new Error(text || `Layout save failed (${res.status})`);
-        }
-        const mixRes = await fetch("/api/mix", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ output: "mixed.wav" }),
-        });
-        if (!mixRes.ok) {
-          const text = await mixRes.text();
-          throw new Error(text || `Mix failed (${mixRes.status})`);
-        }
-        const output = await mixRes.json();
-        const outputName = output.output ? output.output.split("/").pop() : "mixed.wav";
-        updateStatus(`Mix complete. Output: ${outputName}`);
-      } catch (err) {
-        console.error(err);
-        updateStatus(`Mix failed: ${err.message}`, true);
+      const layout = {
+        version: 1,
+        segments: segments.map((segment) => ({
+          file: segment.file,
+          name: segment.name,
+          start: segment.start,
+          end: segment.end,
+          offset: segment.offset,
+          volume: segment.volume,
+          fade_in: segment.fadeIn,
+          fade_out: segment.fadeOut,
+        })),
+      };
+      const res = await fetch("/api/bgm/layout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(layout),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || `Layout save failed (${res.status})`);
       }
-    });
+      const outputName = getExportFileName("mix");
+      const mixRes = await fetch("/api/mix", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ output: outputName, use_bgm: true }),
+      });
+      if (!mixRes.ok) {
+        const text = await mixRes.text();
+        throw new Error(text || `Mix failed (${mixRes.status})`);
+      }
+      const output = await mixRes.json();
+      const fileName = output.output || outputName;
+      updateStatus(`書き出し完了: ${fileName}`);
+      downloadFile(fileName);
+    };
+
+    if (mixBgmBtn) {
+      mixBgmBtn.addEventListener("click", async () => {
+        if (!autoMode) {
+          updateStatus("自動録音のみ書き出し可能です。", true);
+          return;
+        }
+        if (!hasVoiceAudio) {
+          updateStatus("書き出す音声がありません。", true);
+          return;
+        }
+        updateStatus("書き出し中…");
+        try {
+          if (!bgmFile || bgmSegments.length === 0) {
+            await exportVoiceOnly();
+          } else {
+            await exportWithBgm();
+          }
+        } catch (err) {
+          console.error(err);
+          updateStatus(`書き出しに失敗しました: ${err.message}`, true);
+        }
+      });
+    }
 
     const handleBgmFile = async (file) => {
-      updateStatus("Loading BGM...");
+      updateStatus("BGMを読み込み中…");
       try {
         const duration = await readDuration(file);
+        console.log("BGM duration:", duration);
         bgmFile = file;
         bgmUploadPath = null;
         bgmDuration = duration;
         previewBgmBuffer = null;
         initBgmWaveform(file);
         addBgmSegment({ name: file.name, duration, file: null });
+        refreshTimelineWidth();
         updateMixAvailability();
-        bgmFileLabel.textContent = `♪ ${file.name}`;
+        bgmFileLabel.textContent = file.name;
         bgmPanel.classList.add("bgm-loaded");
-        updateStatus("BGM loaded.");
+        updateBgmPlaceholder();
+        updateStatus("BGM読み込み完了");
       } catch (err) {
         console.error(err);
-        updateStatus(`BGM load failed: ${err.message}`, true);
+        updateStatus(`BGM読み込みに失敗しました: ${err.message}`, true);
       }
     };
 
-    addBgmBtn.addEventListener("click", () => {
-      if (!bgmFile) {
-        updateStatus("Load a BGM file first.", true);
-        return;
-      }
-      const duration = bgmDuration || (bgmWaveSurfer ? bgmWaveSurfer.getDuration() || 0 : 0);
-      addBgmSegment({ name: bgmFile.name, duration, file: bgmUploadPath });
-      updateStatus("BGM block added.");
+    if (addBgmBtn) {
+      addBgmBtn.addEventListener("click", () => {
+        if (!bgmFile) {
+          updateStatus("BGMを読み込んでください。", true);
+          return;
+        }
+        const duration = bgmDuration || (bgmWaveSurfer ? bgmWaveSurfer.getDuration() || 0 : 0);
+        addBgmSegment({ name: bgmFile.name, duration, file: bgmUploadPath });
+        updateStatus("効果音を追加しました。");
+      });
+    }
+
+    if (bgmInput) {
+      bgmInput.addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        await handleBgmFile(file);
+        bgmInput.value = "";
+        bgmInput.blur();
+        detachHiddenFileInputs();
+        showControls();
+      });
+    }
+
+    window.addEventListener("resize", () => {
+      resizeRecordingCanvas();
     });
 
-    bgmInput.addEventListener("change", async (event) => {
-      const file = event.target.files?.[0];
-      if (!file) return;
-      await handleBgmFile(file);
-      bgmInput.value = "";
-      bgmInput.blur();
-      detachHiddenFileInputs();
-    });
+    resizeRecordingCanvas();
+    updateRecordingControls();
+    updateBgmPlaceholder();
+    updateEmptyState();
 
-    bgmTimelineWrap.addEventListener("dragover", (event) => {
-      event.preventDefault();
-    });
+    if (bgmTimelineWrap) {
+      bgmTimelineWrap.addEventListener("dragover", (event) => {
+        event.preventDefault();
+      });
 
-    bgmTimelineWrap.addEventListener("drop", async (event) => {
-      event.preventDefault();
-      const file = event.dataTransfer?.files?.[0];
-      if (!file) return;
-      await handleBgmFile(file);
-    });
+      bgmTimelineWrap.addEventListener("drop", async (event) => {
+        event.preventDefault();
+        const file = event.dataTransfer?.files?.[0];
+        if (!file) return;
+        await handleBgmFile(file);
+      });
+    }
 
     document.addEventListener("keydown", (event) => {
-      if (!wavesurfer) return;
-      if (event.target && event.target.tagName === "INPUT" && event.target.type !== "file") return;
+      if (event.key === " " && event.target === document.body) {
+        event.preventDefault();
+      }
+      console.log("KEYDOWN:", event.key, event.code, event.target?.tagName);
+      if (event.target && ["INPUT", "TEXTAREA", "BUTTON"].includes(event.target.tagName) && event.target.type !== "file") return;
       const key = event.key;
       detachHiddenFileInputs();
-      const current = wavesurfer.getCurrentTime();
-      if (key === " ") {
-        event.preventDefault();
-        if (wavesurfer.isPlaying()) {
-          wavesurfer.pause();
-        } else {
-          wavesurfer.play();
-        }
+      if (recordingActive && key !== "r" && key !== "R") {
         return;
       }
-      if (key === "i" || key === "I") {
+      if (key === "r" || key === "R") {
+        console.log("=== R KEY PRESSED ===");
+        console.log("isRecording:", recordingActive);
+        const hasAudio = !!(wavesurfer && wavesurfer.getDuration());
+        console.log("hasAudio:", hasAudio);
+        const hasSelection = selection.start !== null && selection.end !== null;
+        console.log("selection:", { start: selection.start, end: selection.end });
+        console.log("selection values:", {
+          start: selection.start,
+          end: selection.end,
+          hasSelection,
+          startType: typeof selection.start,
+          endType: typeof selection.end,
+        });
+        console.log("recording decision:", hasSelection ? "punch" : (hasAudio ? "insert" : "new"));
+        event.preventDefault();
+        if (event.repeat) return;
+        if (recordBtn && recordBtn.disabled) {
+          updateStatus("録音はこのブラウザで利用できません。", true);
+          return;
+        }
+        if (recordingActive) {
+          stopRecording();
+        } else if (hasSelection) {
+          recordingMode = "punch";
+          updateRecordingUI();
+          startRecording("punch");
+        } else if (hasAudio) {
+          recordingMode = "insert";
+          updateRecordingUI();
+          startRecording("insert");
+        } else {
+          recordingMode = "new";
+          updateRecordingUI();
+          startRecording("new");
+        }
+        showControls();
+        return;
+      }
+      if (key === "?") {
+        event.preventDefault();
+        toggleShortcuts();
+        showControls();
+        return;
+      }
+      if (key === "e" || key === "E") {
+        event.preventDefault();
+        mixBgmBtn.click();
+        showControls();
+        return;
+      }
+      if (!wavesurfer) return;
+      const current = wavesurfer.getCurrentTime();
+      if (key === "i" && !event.shiftKey) {
+        event.preventDefault();
+        toggleStatus();
+        showControls();
+        return;
+      }
+        if (key === " ") {
+          event.preventDefault();
+        if (!hasVoiceAudio) {
+          recordingMode = "new";
+          updateRecordingUI();
+          startRecording("new");
+          showControls();
+          return;
+        }
+          if (wavesurfer && wavesurfer.isPlaying()) {
+            wavesurfer.pause();
+          } else if (wavesurfer) {
+            wavesurfer.play();
+          }
+          showControls();
+          return;
+        }
+      if (key === "I") {
         event.preventDefault();
         setSelectionPoint("start", current);
+        showControls();
         return;
       }
-      if (key === "o" || key === "O") {
+      if (key === "O") {
         event.preventDefault();
         setSelectionPoint("end", current);
+        showControls();
         return;
       }
       if (key === "d" || key === "D") {
         event.preventDefault();
         if (selection.start !== null && selection.end !== null) {
           deleteSelection();
+          showControls();
           return;
         }
-        updateStatus("No selection to delete.", true);
+        updateStatus("範囲が選択されていません。", true);
+        showControls();
         return;
       }
       if (event.metaKey && !event.shiftKey && (key === "z" || key === "Z")) {
         event.preventDefault();
         undoDelete();
+        showControls();
         return;
       }
       if (event.metaKey && event.shiftKey && (key === "z" || key === "Z")) {
         event.preventDefault();
-        updateStatus("Redo not available yet.", true);
+        updateStatus("やり直しは未対応です。", true);
+        showControls();
         return;
       }
       if (event.metaKey && key === "ArrowLeft") {
         event.preventDefault();
         seekToTime(0);
+        showControls();
         return;
       }
       if (event.metaKey && key === "ArrowRight") {
         event.preventDefault();
         seekToTime(wavesurfer.getDuration());
+        showControls();
         return;
       }
       if (key === "ArrowLeft") {
         event.preventDefault();
         seekBy(-1);
+        showControls();
         return;
       }
       if (key === "ArrowRight") {
         event.preventDefault();
         seekBy(1);
+        showControls();
         return;
       }
       if (key === "Escape") {
         event.preventDefault();
+        if (recordingActive) {
+          stopRecording();
+          return;
+        }
         clearSelection();
         selectBgm(null);
+        editorEl.classList.remove("show-status", "show-shortcuts");
+        showControls();
         return;
       }
       if (key === "Delete" || key === "Backspace") {
         event.preventDefault();
         if (selection.start !== null && selection.end !== null) {
           deleteSelection();
+          showControls();
         }
       }
     });
 
     const params = new URLSearchParams(window.location.search);
     const fileParam = params.get("file");
-    const isAutoFile = (fileParam || "").toLowerCase() === "auto";
+    const fileParamLower = (fileParam || "").toLowerCase();
+    const isAutoFile = fileParamLower === "auto" || fileParamLower.startsWith("auto.");
     if (fileParam) {
       const url = isAutoFile ? "/api/auto" : fileParam;
       loadFromUrl(url, fileParam, isAutoFile);
-    } else if (isAutoFile) {
-      loadFromUrl("/api/auto", "auto", true);
     }
   </script>
 </body>
