@@ -20,16 +20,17 @@ Commands:
 - `clipod process` — process audio (denoise, normalize, etc.).
 - `clipod trim` — trim audio based on selection JSON.
 - `clipod mix` — mix tracks together.
-- `clipod web` — launch the waveform editor with BGM timeline support.
+- `clipod web [audio.wav]` — launch the waveform editor (record directly in the browser or load a file).
 - `clipod export` — export final audio with BGM layout + loudness normalization.
 
 ## Web editor
+- Record directly in the browser with a live waveform preview.
+- Punch-in re-recording for selected regions.
 - Waveform editor with a dedicated BGM timeline.
 - Multiple BGM blocks with drag/trim placement.
 - Default BGM mix at -12 dB with 3s fade in/out.
 
 ## Quick Start
-1. `clipod record --duration 5 --output test.wav`
-2. `clipod web test.wav`
-3. `clipod process test.wav processed.wav`
-4. `clipod export processed.wav -o output.mp3`
+1. `clipod web`
+2. Record in the browser, then edit the waveform.
+3. `clipod export auto.wav -o output.mp3`
