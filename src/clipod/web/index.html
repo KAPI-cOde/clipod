@@ -251,7 +251,8 @@
       display: none;
     }
     #fileInput,
-    #bgmInput {
+    #bgmInput,
+    #sfxInput {
       display: none;
     }
     .file-label {
@@ -351,7 +352,7 @@
     }
     #bgmTimeline {
       position: relative;
-      height: 96px;
+      height: 104px;
       min-width: 100%;
     }
     .bgm-placeholder {
@@ -373,7 +374,7 @@
     }
     #bgmWaveform {
       position: absolute;
-      top: 12px;
+      top: 32px;
       left: 0;
       right: 0;
       height: 64px;
@@ -387,9 +388,17 @@
       transform: translateX(-50%);
       white-space: nowrap;
     }
+    #sfxLane {
+      position: absolute;
+      top: 8px;
+      left: 0;
+      right: 0;
+      height: 16px;
+      z-index: 4;
+    }
     #bgmLane {
       position: absolute;
-      top: 12px;
+      top: 32px;
       left: 0;
       right: 0;
       height: 64px;
@@ -412,11 +421,36 @@
       user-select: none;
       z-index: 4;
     }
+    .sfx-segment {
+      position: absolute;
+      top: 3px;
+      height: 10px;
+      border-radius: 6px;
+      background: rgba(74, 144, 217, 0.35);
+      border: 1px solid #4a90d9;
+      cursor: grab;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      font-size: 10px;
+      color: #e6f2ff;
+      box-sizing: border-box;
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      z-index: 5;
+    }
     .bgm-segment.selected {
       background: rgba(16, 185, 129, 0.45);
       border-color: #34d399;
     }
-    .bgm-segment .handle {
+    .sfx-segment.selected {
+      background: rgba(74, 144, 217, 0.55);
+      border-color: #7bb3e6;
+    }
+    .bgm-segment .handle,
+    .sfx-segment .handle {
       position: absolute;
       top: 0;
       width: 8px;
@@ -612,6 +646,7 @@
       </div>
       <input type="file" id="fileInput" accept="audio/*" />
       <input type="file" id="bgmInput" accept="audio/*" />
+      <input type="file" id="sfxInput" accept="audio/*" />
     </div>
     <div class="recording-panel" id="recordingPanel">
       <div class="recording-actions">
@@ -650,6 +685,7 @@
           <div id="bgmMarkers"></div>
           <div id="bgmWaveform"></div>
           <span class="track-playhead" id="bgmPlayhead"></span>
+          <div id="sfxLane"></div>
           <div id="bgmLane"></div>
         </div>
       </div>
@@ -708,9 +744,11 @@
     const bgmTimelineWrap = document.getElementById("bgmTimelineWrap");
     const bgmTimeline = document.getElementById("bgmTimeline");
     const bgmLane = document.getElementById("bgmLane");
+    const sfxLane = document.getElementById("sfxLane");
     const bgmMarkers = document.getElementById("bgmMarkers");
     const bgmWaveformEl = document.getElementById("bgmWaveform");
     const bgmInput = document.getElementById("bgmInput");
+    const sfxInput = document.getElementById("sfxInput");
     const bgmPlaceholder = document.getElementById("bgmPlaceholder");
     const addBgmBtn = document.getElementById("addBgm");
     const mixBgmBtn = document.getElementById("mixBgm");
@@ -738,6 +776,7 @@
     let zoomLevel = 1;
     let timelinePxPerSec = 1;
     let bgmSegments = [];
+    let sfxSegments = [];
     let selectedBgmId = null;
     let bgmIdCounter = 1;
     let dragState = null;
@@ -750,6 +789,7 @@
     let previewContext = null;
     let previewStartOffset = 0;
     let previewBgmBuffer = null;
+    let previewSfxBuffers = new Map();
     let previewSources = [];
     let previewGain = null;
     const bgmDefaultVolume = 0.25;
@@ -1164,7 +1204,7 @@
     };
 
     const updateBgmPlaceholder = () => {
-      const hasBgm = !!bgmFile;
+      const hasBgm = !!bgmFile || bgmSegments.length > 0 || sfxSegments.length > 0;
       if (bgmPlaceholder) {
         bgmPlaceholder.hidden = hasBgm;
       }
@@ -1176,7 +1216,8 @@
     const getTimelineDuration = () => {
       const voiceDuration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
       const maxSegmentEnd = bgmSegments.reduce((max, segment) => Math.max(max, segment.end), 0);
-      return Math.max(voiceDuration, bgmDuration, maxSegmentEnd);
+      const maxSfxEnd = sfxSegments.reduce((max, segment) => Math.max(max, segment.end), 0);
+      return Math.max(voiceDuration, bgmDuration, maxSegmentEnd, maxSfxEnd);
     };
 
     const refreshTimelineWidth = () => {
@@ -1217,21 +1258,36 @@
 
     const layoutToJson = () => ({
       version: 1,
-      segments: bgmSegments.map((segment) => ({
-        file: segment.file,
-        name: segment.name,
-        start: segment.start,
-        end: segment.end,
-        offset: segment.offset,
-        volume: segment.volume,
-        fade_in: segment.fadeIn,
-        fade_out: segment.fadeOut,
-      })),
+      segments: [
+        ...bgmSegments.map((segment) => ({
+          file: segment.file || bgmUploadPath,
+          name: segment.name,
+          start: segment.start,
+          end: segment.end,
+          offset: segment.offset,
+          volume: segment.volume,
+          fade_in: segment.fadeIn,
+          fade_out: segment.fadeOut,
+        })),
+        ...sfxSegments.map((segment) => ({
+          file: segment.file,
+          name: segment.name,
+          start: segment.start,
+          end: segment.end,
+          offset: segment.offset,
+          volume: segment.volume,
+          fade_in: segment.fadeIn,
+          fade_out: segment.fadeOut,
+        })),
+      ],
     });
 
     const persistLayout = async () => {
       try {
-        if (!bgmUploadPath) {
+        const bgmReady = bgmSegments.length === 0 || bgmSegments.every((segment) => segment.file || bgmUploadPath);
+        const sfxReady = sfxSegments.length === 0 || sfxSegments.every((segment) => segment.file);
+        const canPersist = (bgmSegments.length + sfxSegments.length) > 0 && bgmReady && sfxReady;
+        if (!canPersist) {
           return;
         }
         await fetch("/api/bgm/layout", {
@@ -1246,10 +1302,11 @@
 
     const selectBgm = (id) => {
       selectedBgmId = id;
-      document.querySelectorAll(".bgm-segment").forEach((el) => {
+      document.querySelectorAll(".bgm-segment, .sfx-segment").forEach((el) => {
         el.classList.toggle("selected", el.dataset.id === String(id));
       });
-      const segment = bgmSegments.find((item) => item.id === id);
+      const segment = bgmSegments.find((item) => item.id === id)
+        || sfxSegments.find((item) => item.id === id);
       if (!segment) {
         bgmStartEl.textContent = "--:--.--";
         bgmEndEl.textContent = "--:--.--";
@@ -1274,6 +1331,38 @@
     const renderBgmSegments = (persist = true) => {
       refreshTimelineWidth();
       bgmLane.innerHTML = "";
+      if (sfxLane) {
+        sfxLane.innerHTML = "";
+      }
+      sfxSegments.forEach((segment) => {
+        if (!sfxLane) return;
+        const el = document.createElement("div");
+        el.className = "sfx-segment";
+        if (segment.id === selectedBgmId) {
+          el.classList.add("selected");
+        }
+        el.dataset.id = segment.id;
+        const left = segment.start * timelinePxPerSec;
+        const width = Math.max(18, (segment.end - segment.start) * timelinePxPerSec);
+        el.style.left = `${left}px`;
+        el.style.width = `${width}px`;
+        el.textContent = segment.name;
+        segment.element = el;
+        const leftHandle = document.createElement("span");
+        leftHandle.className = "handle left";
+        leftHandle.dataset.handle = "left";
+        const rightHandle = document.createElement("span");
+        rightHandle.className = "handle right";
+        rightHandle.dataset.handle = "right";
+        el.appendChild(leftHandle);
+        el.appendChild(rightHandle);
+        el.addEventListener("mousedown", (event) => startDrag(event, segment, el));
+        el.addEventListener("click", (event) => {
+          event.stopPropagation();
+          selectBgm(segment.id);
+        });
+        sfxLane.appendChild(el);
+      });
       bgmSegments.forEach((segment) => {
         const el = document.createElement("div");
         el.className = "bgm-segment";
@@ -1303,7 +1392,10 @@
         bgmLane.appendChild(el);
       });
       updateMixAvailability();
-      if (bgmSegments.find((item) => item.id === selectedBgmId)) {
+      if (
+        bgmSegments.find((item) => item.id === selectedBgmId)
+        || sfxSegments.find((item) => item.id === selectedBgmId)
+      ) {
         selectBgm(selectedBgmId);
       } else {
         selectBgm(null);
@@ -1398,8 +1490,36 @@
         volume: bgmDefaultVolume,
         fadeIn: bgmDefaultFade,
         fadeOut: bgmDefaultFade,
+        track: "bgm",
       };
       bgmSegments.push(segment);
+      renderBgmSegments();
+      selectBgm(segment.id);
+    };
+
+    const addSfxSegment = (file) => {
+      const duration = file.duration || 1;
+      const mainDuration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
+      const minLength = 0.05;
+      let start = 0;
+      let end = Math.max(minLength, duration);
+      if (mainDuration) {
+        end = Math.max(minLength, Math.min(duration, mainDuration));
+      }
+      const segment = {
+        id: bgmIdCounter++,
+        file: file.file,
+        name: file.name,
+        start,
+        end,
+        offset: 0,
+        duration,
+        volume: bgmDefaultVolume,
+        fadeIn: bgmDefaultFade,
+        fadeOut: bgmDefaultFade,
+        track: "sfx",
+      };
+      sfxSegments.push(segment);
       renderBgmSegments();
       selectBgm(segment.id);
     };
@@ -1745,6 +1865,9 @@
       if (document.activeElement === bgmInput) {
         bgmInput.blur();
       }
+      if (document.activeElement === sfxInput) {
+        sfxInput.blur();
+      }
       if (document.activeElement === fileInput) {
         fileInput.blur();
       }
@@ -1807,11 +1930,13 @@
       hasVoiceAudio = true;
       updateEmptyState();
       bgmSegments = [];
+      sfxSegments = [];
       selectedBgmId = null;
       bgmFile = null;
       bgmUploadPath = null;
       bgmDuration = 0;
       previewBgmBuffer = null;
+      previewSfxBuffers = new Map();
       if (bgmWaveSurfer) {
         bgmWaveSurfer.destroy();
         bgmWaveSurfer = null;
@@ -2303,7 +2428,7 @@
 
     if (bgmTimelineWrap) {
       bgmTimelineWrap.addEventListener("click", (event) => {
-        if (!bgmFile) {
+        if (!bgmFile && sfxSegments.length === 0) {
           bgmInput.click();
           showControls();
           return;
@@ -2316,7 +2441,8 @@
 
     if (bgmVolumeEl) {
       bgmVolumeEl.addEventListener("input", () => {
-        const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+        const segment = bgmSegments.find((item) => item.id === selectedBgmId)
+          || sfxSegments.find((item) => item.id === selectedBgmId);
         if (!segment) return;
         segment.volume = parseFloat(bgmVolumeEl.value);
         persistLayout();
@@ -2328,7 +2454,8 @@
 
     if (bgmFadeInEl) {
       bgmFadeInEl.addEventListener("change", () => {
-        const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+        const segment = bgmSegments.find((item) => item.id === selectedBgmId)
+          || sfxSegments.find((item) => item.id === selectedBgmId);
         if (!segment) return;
         segment.fadeIn = Math.max(0, parseFloat(bgmFadeInEl.value || 0));
         persistLayout();
@@ -2340,7 +2467,8 @@
 
     if (bgmFadeOutEl) {
       bgmFadeOutEl.addEventListener("change", () => {
-        const segment = bgmSegments.find((item) => item.id === selectedBgmId);
+        const segment = bgmSegments.find((item) => item.id === selectedBgmId)
+          || sfxSegments.find((item) => item.id === selectedBgmId);
         if (!segment) return;
         segment.fadeOut = Math.max(0, parseFloat(bgmFadeOutEl.value || 0));
         persistLayout();
@@ -2364,14 +2492,38 @@
           previewBgmBuffer = null;
         }
       }
+      if (sfxSegments.length > 0) {
+        const pending = sfxSegments.filter((segment) => segment.file && !previewSfxBuffers.has(segment.file));
+        if (pending.length > 0) {
+          try {
+            const buffers = await Promise.all(
+              pending.map(async (segment) => {
+                const res = await fetch(segment.file, { cache: "no-store" });
+                if (!res.ok) {
+                  throw new Error(`SFX fetch failed: ${segment.file}`);
+                }
+                const data = await res.arrayBuffer();
+                const buffer = await previewContext.decodeAudioData(data.slice(0));
+                return { file: segment.file, buffer };
+              })
+            );
+            buffers.forEach(({ file, buffer }) => previewSfxBuffers.set(file, buffer));
+          } catch (err) {
+            console.error(err);
+            updateStatus("効果音のプレビューを再生できませんでした。", true);
+          }
+        }
+      }
     };
 
     const startPreviewMix = async (offsetSeconds = 0) => {
-      if (!bgmFile || bgmSegments.length === 0) {
+      const hasBgmPreview = bgmFile && bgmSegments.length > 0;
+      const hasSfxPreview = sfxSegments.length > 0;
+      if (!hasBgmPreview && !hasSfxPreview) {
         return;
       }
       await loadPreviewBuffers();
-      if (!previewBgmBuffer) {
+      if (hasBgmPreview && !previewBgmBuffer) {
         return;
       }
       stopPreviewMix();
@@ -2382,38 +2534,58 @@
       mixGain.gain.value = 1;
       mixGain.connect(previewContext.destination);
       const offset = Math.max(0, offsetSeconds);
-      bgmSegments.forEach((segment) => {
-        const segDuration = Math.max(0, segment.end - segment.start);
-        if (!segDuration) return;
-        const bgmSource = previewContext.createBufferSource();
-        bgmSource.buffer = previewBgmBuffer;
-        const segmentGain = previewContext.createGain();
-        segmentGain.gain.value = Number(segment.volume) || bgmDefaultVolume;
-        segmentGain.connect(mixGain);
-        const fadeIn = Math.max(0, Math.min(segment.fadeIn, segDuration));
-        const fadeOut = Math.max(0, Math.min(segment.fadeOut, segDuration));
-        const fadeOutStart = Math.max(0, segDuration - fadeOut);
-        const segStart = segment.start;
-        if (segStart + segDuration <= offset) return;
-        const relativeStart = Math.max(0, segStart - offset);
-        const segOffset = Math.max(0, segment.offset + (offset - segStart > 0 ? offset - segStart : 0));
-        const playDuration = Math.max(0, segDuration - (offset - segStart > 0 ? offset - segStart : 0));
-        if (playDuration <= 0) return;
-        const now = previewContext.currentTime + relativeStart;
-        segmentGain.gain.setValueAtTime(segmentGain.gain.value, now);
-        if (fadeIn > 0) {
-          segmentGain.gain.setValueAtTime(0, now);
-          segmentGain.gain.linearRampToValueAtTime(segmentGain.gain.value, now + fadeIn);
-        }
-        if (fadeOut > 0 && playDuration > fadeOutStart) {
-          const fadeStart = now + Math.min(playDuration, fadeOutStart);
-          segmentGain.gain.setValueAtTime(segmentGain.gain.value, fadeStart);
-          segmentGain.gain.linearRampToValueAtTime(0, fadeStart + fadeOut);
-        }
-        bgmSource.connect(segmentGain);
-        bgmSource.start(now, segOffset, playDuration);
-        previewSources.push(bgmSource);
-      });
+      if (hasBgmPreview) {
+        bgmSegments.forEach((segment) => {
+          const segDuration = Math.max(0, segment.end - segment.start);
+          if (!segDuration) return;
+          const bgmSource = previewContext.createBufferSource();
+          bgmSource.buffer = previewBgmBuffer;
+          const segmentGain = previewContext.createGain();
+          segmentGain.gain.value = Number(segment.volume) || bgmDefaultVolume;
+          segmentGain.connect(mixGain);
+          const fadeIn = Math.max(0, Math.min(segment.fadeIn, segDuration));
+          const fadeOut = Math.max(0, Math.min(segment.fadeOut, segDuration));
+          const fadeOutStart = Math.max(0, segDuration - fadeOut);
+          const segStart = segment.start;
+          if (segStart + segDuration <= offset) return;
+          const relativeStart = Math.max(0, segStart - offset);
+          const segOffset = Math.max(0, segment.offset + (offset - segStart > 0 ? offset - segStart : 0));
+          const playDuration = Math.max(0, segDuration - (offset - segStart > 0 ? offset - segStart : 0));
+          if (playDuration <= 0) return;
+          const now = previewContext.currentTime + relativeStart;
+          segmentGain.gain.setValueAtTime(segmentGain.gain.value, now);
+          if (fadeIn > 0) {
+            segmentGain.gain.setValueAtTime(0, now);
+            segmentGain.gain.linearRampToValueAtTime(segmentGain.gain.value, now + fadeIn);
+          }
+          if (fadeOut > 0 && playDuration > fadeOutStart) {
+            const fadeStart = now + Math.min(playDuration, fadeOutStart);
+            segmentGain.gain.setValueAtTime(segmentGain.gain.value, fadeStart);
+            segmentGain.gain.linearRampToValueAtTime(0, fadeStart + fadeOut);
+          }
+          bgmSource.connect(segmentGain);
+          bgmSource.start(now, segOffset, playDuration);
+          previewSources.push(bgmSource);
+        });
+      }
+      if (hasSfxPreview) {
+        sfxSegments.forEach((segment) => {
+          const buffer = segment.file ? previewSfxBuffers.get(segment.file) : null;
+          if (!buffer) return;
+          if (segment.start < offset) return;
+          const relativeStart = Math.max(0, segment.start - offset);
+          const now = previewContext.currentTime + relativeStart;
+          console.log("SFX triggered at", { time: segment.start });
+          const sfxSource = previewContext.createBufferSource();
+          sfxSource.buffer = buffer;
+          const sfxGain = previewContext.createGain();
+          sfxGain.gain.value = Number(segment.volume) || bgmDefaultVolume;
+          sfxGain.connect(mixGain);
+          sfxSource.connect(sfxGain);
+          sfxSource.start(now);
+          previewSources.push(sfxSource);
+        });
+      }
       previewGain = mixGain;
     };
 
@@ -2449,8 +2621,10 @@
 
     const exportWithBgm = async () => {
       updateStatus("書き出し中…");
-      await ensureBgmUpload();
-      const segments = bgmSegments
+      if (bgmFile) {
+        await ensureBgmUpload();
+      }
+      const bgmLayoutSegments = bgmSegments
         .filter((segment) => (segment.end - segment.start) > 0)
         .map((segment) => ({
           ...segment,
@@ -2460,8 +2634,22 @@
           fadeIn: Number(segment.fadeIn) || bgmDefaultFade,
           fadeOut: Number(segment.fadeOut) || bgmDefaultFade,
         }));
+      const sfxLayoutSegments = sfxSegments
+        .filter((segment) => (segment.end - segment.start) > 0)
+        .map((segment) => ({
+          ...segment,
+          file: segment.file,
+          offset: Math.max(0, segment.offset),
+          volume: Number(segment.volume) || bgmDefaultVolume,
+          fadeIn: Number(segment.fadeIn) || bgmDefaultFade,
+          fadeOut: Number(segment.fadeOut) || bgmDefaultFade,
+        }));
+      const segments = [...bgmLayoutSegments, ...sfxLayoutSegments];
       if (segments.length === 0) {
-        throw new Error("有効なBGMがありません。");
+        throw new Error("有効なBGM/SFXがありません。");
+      }
+      if (segments.some((segment) => !segment.file)) {
+        throw new Error("音源ファイルが不足しています。");
       }
       const layout = {
         version: 1,
@@ -2513,7 +2701,7 @@
         }
         updateStatus("書き出し中…");
         try {
-          if (!bgmFile || bgmSegments.length === 0) {
+          if (!bgmFile && bgmSegments.length === 0 && sfxSegments.length === 0) {
             await exportVoiceOnly();
           } else {
             await exportWithBgm();
@@ -2534,6 +2722,7 @@
         bgmUploadPath = null;
         bgmDuration = duration;
         previewBgmBuffer = null;
+        previewSfxBuffers = new Map();
         initBgmWaveform(file);
         addBgmSegment({ name: file.name, duration, file: null });
         refreshTimelineWidth();
@@ -2548,15 +2737,33 @@
       }
     };
 
+    const handleSfxFile = async (file) => {
+      updateStatus("効果音を読み込み中…");
+      try {
+        const duration = await readDuration(file);
+        console.log("SFX duration:", duration);
+        const uploaded = await uploadBgmFile(file);
+        addSfxSegment({ name: file.name, duration, file: uploaded.file });
+        refreshTimelineWidth();
+        updateMixAvailability();
+        updateBgmPlaceholder();
+        updateStatus("効果音を追加しました。");
+      } catch (err) {
+        console.error(err);
+        updateStatus(`効果音読み込みに失敗しました: ${err.message}`, true);
+      }
+    };
+
     if (addBgmBtn) {
       addBgmBtn.addEventListener("click", () => {
-        if (!bgmFile) {
-          updateStatus("BGMを読み込んでください。", true);
+        console.log("SFX click", { bgmLoaded: !!bgmFile, segments: bgmSegments.length });
+        if (sfxInput) {
+          sfxInput.click();
+          showControls();
           return;
         }
-        const duration = bgmDuration || (bgmWaveSurfer ? bgmWaveSurfer.getDuration() || 0 : 0);
-        addBgmSegment({ name: bgmFile.name, duration, file: bgmUploadPath });
-        updateStatus("効果音を追加しました。");
+        console.log("SFX click early return: no sfx input");
+        updateStatus("効果音ファイルを選択できません。", true);
       });
     }
 
@@ -2567,6 +2774,18 @@
         await handleBgmFile(file);
         bgmInput.value = "";
         bgmInput.blur();
+        detachHiddenFileInputs();
+        showControls();
+      });
+    }
+
+    if (sfxInput) {
+      sfxInput.addEventListener("change", async (event) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        await handleSfxFile(file);
+        sfxInput.value = "";
+        sfxInput.blur();
         detachHiddenFileInputs();
         showControls();
       });
@@ -2608,8 +2827,8 @@
       if (key === "r" || key === "R") {
         console.log("=== R KEY PRESSED ===");
         console.log("isRecording:", recordingActive);
-        const hasAudio = !!(wavesurfer && wavesurfer.getDuration());
-        console.log("hasAudio:", hasAudio);
+        const hasAudio = hasVoiceAudio && !!wavesurfer;
+        console.log("hasAudio:", hasAudio, { hasVoiceAudio, hasWavesurfer: !!wavesurfer });
         const hasSelection = selection.start !== null && selection.end !== null;
         console.log("selection:", { start: selection.start, end: selection.end });
         console.log("selection values:", {
