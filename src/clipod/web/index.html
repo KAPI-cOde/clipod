@@ -419,7 +419,34 @@
       color: #ecfdf5;
       box-sizing: border-box;
       user-select: none;
+      overflow: hidden;
       z-index: 4;
+    }
+    .bgm-segment::before,
+    .bgm-segment::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .bgm-segment::before {
+      left: 0;
+      width: var(--fade-in-pct, 0%);
+      background: linear-gradient(90deg, rgba(12, 74, 52, 0.7), rgba(12, 74, 52, 0));
+    }
+    .bgm-segment::after {
+      right: 0;
+      width: var(--fade-out-pct, 0%);
+      background: linear-gradient(270deg, rgba(12, 74, 52, 0.7), rgba(12, 74, 52, 0));
+    }
+    .segment-label {
+      position: relative;
+      z-index: 2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
     .sfx-segment {
       position: absolute;
@@ -443,11 +470,79 @@
     }
     .bgm-segment.selected {
       background: rgba(16, 185, 129, 0.45);
-      border-color: #34d399;
+      border: 2px solid rgba(59, 130, 246, 0.8);
+      border-color: rgba(59, 130, 246, 0.8);
+      box-shadow: 0 0 12px 3px rgba(59, 130, 246, 0.7);
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
     }
     .sfx-segment.selected {
       background: rgba(74, 144, 217, 0.55);
-      border-color: #7bb3e6;
+      border: 2px solid rgba(59, 130, 246, 0.8);
+      border-color: rgba(59, 130, 246, 0.8);
+      box-shadow: 0 0 12px 3px rgba(59, 130, 246, 0.7);
+      transition: box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .fade-indicator {
+      position: absolute;
+      top: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 1px 4px;
+      border-radius: 6px;
+      font-size: 10px;
+      color: #ecfdf5;
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(148, 163, 184, 0.45);
+      cursor: pointer;
+      z-index: 3;
+      transition: opacity 0.15s ease;
+    }
+    .fade-indicator.fade-in {
+      left: 6px;
+    }
+    .fade-indicator.fade-out {
+      right: 6px;
+    }
+    .fade-indicator.is-empty {
+      opacity: 0;
+    }
+    .bgm-segment:hover .fade-indicator.is-empty,
+    .fade-indicator.editing {
+      opacity: 1;
+    }
+    .fade-indicator input {
+      display: none;
+      width: 42px;
+      padding: 1px 2px;
+      font-size: 10px;
+      border-radius: 4px;
+      border: 1px solid #334155;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    .fade-indicator.editing input {
+      display: inline-block;
+    }
+    .fade-indicator.editing .fade-label {
+      display: none;
+    }
+    .bgm-segment.pasted,
+    .sfx-segment.pasted {
+      animation: pastedPulse 0.6s ease;
+    }
+    .bgm-segment.selected,
+    .sfx-segment.selected {
+      box-shadow: 0 0 8px 2px rgba(59, 130, 246, 0.6);
+      transition: box-shadow 0.15s ease;
+    }
+    @keyframes pastedPulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.7);
+      }
+      100% {
+        box-shadow: 0 0 0 10px rgba(56, 189, 248, 0);
+      }
     }
     .bgm-segment .handle,
     .sfx-segment .handle {
@@ -693,8 +788,8 @@
         <span>開始 <strong id="bgmStart">--:--.--</strong></span>
         <span>終了 <strong id="bgmEnd">--:--.--</strong></span>
         <label><span>音量</span><input type="range" id="bgmVolume" min="0" max="1" step="0.05" value="0.25" disabled></label>
-        <label><span>フェードイン</span><input type="number" id="bgmFadeIn" min="0" step="0.1" value="3" disabled></label>
-        <label><span>フェードアウト</span><input type="number" id="bgmFadeOut" min="0" step="0.1" value="3" disabled></label>
+        <label><span>フェードイン</span><input type="number" id="bgmFadeIn" min="0" max="10" step="0.1" value="0" disabled></label>
+        <label><span>フェードアウト</span><input type="number" id="bgmFadeOut" min="0" max="10" step="0.1" value="0" disabled></label>
       </div>
     </div>
     <div class="shortcuts-panel" id="shortcutsPanel">
@@ -778,6 +873,7 @@
     let bgmSegments = [];
     let sfxSegments = [];
     let selectedBgmId = null;
+    let selectedBlock = null;
     let bgmIdCounter = 1;
     let dragState = null;
     let syncingScroll = false;
@@ -792,8 +888,11 @@
     let previewSfxBuffers = new Map();
     let previewSources = [];
     let previewGain = null;
+    let clipboardSegment = null;
+    let copyTime = 0;
+    let isMetaDown = false;
     const bgmDefaultVolume = 0.25;
-    const bgmDefaultFade = 3;
+    const bgmDefaultFade = 0;
     let mediaRecorder = null;
     let recordingStream = null;
     let recordingChunks = [];
@@ -898,6 +997,52 @@
       if (punchBtn) {
         punchBtn.hidden = !hasSelection;
       }
+    };
+
+    const getSelectedSegment = () => (
+      bgmSegments.find((item) => item.id === selectedBgmId)
+      || sfxSegments.find((item) => item.id === selectedBgmId)
+      || null
+    );
+
+    const addPasteHighlight = (segment) => {
+      if (!segment?.element) return;
+      segment.element.classList.add("pasted");
+      setTimeout(() => segment.element?.classList.remove("pasted"), 600);
+    };
+
+    const addCopyHighlight = (segment) => {
+      if (!segment?.element) return;
+      segment.element.classList.add("pasted");
+      setTimeout(() => segment.element?.classList.remove("pasted"), 300);
+    };
+
+    const pasteSegmentAt = (segment, time) => {
+      if (!segment) return;
+      const duration = Math.max(0.05, segment.duration || 0.05);
+      const start = Math.max(0, time);
+      const end = start + duration;
+      const clone = {
+        id: bgmIdCounter++,
+        file: segment.file,
+        name: segment.name,
+        start,
+        end,
+        offset: segment.offset || 0,
+        duration: segment.duration || duration,
+        volume: segment.volume,
+        fadeIn: segment.fadeIn,
+        fadeOut: segment.fadeOut,
+        track: segment.type || "bgm",
+      };
+      if (clone.track === "sfx") {
+        sfxSegments.push(clone);
+      } else {
+        bgmSegments.push(clone);
+      }
+      renderBgmSegments();
+      selectBgm(clone.id);
+      addPasteHighlight(clone);
     };
 
       const updateEmptyState = () => {
@@ -1160,7 +1305,8 @@
         console.log("recording upload ok", payload);
         updateStatus("保存しました。");
       if (!shouldReload) return payload;
-      await reloadAutoForced(0, false);
+      const nextPath = payload?.path ? `/api/auto?file=${encodeURIComponent(payload.path)}` : "/api/auto";
+      await reloadAutoForced(0, false, nextPath, true);
       return payload;
     };
 
@@ -1178,7 +1324,7 @@
       }
         console.log("punch upload ok");
       updateStatus("挿入完了。");
-      await reloadAutoForced(seekTime ?? start, false);
+      await reloadAutoForced(seekTime ?? start, false, "/api/auto", true);
     };
 
     const updateRecordingControls = () => {
@@ -1313,6 +1459,8 @@
       bgmVolumeEl.disabled = true;
       bgmFadeInEl.disabled = true;
       bgmFadeOutEl.disabled = true;
+      selectedBlock = null;
+      console.log("Selection cleared: none");
       updateMixAvailability();
       return;
       }
@@ -1324,6 +1472,32 @@
       bgmVolumeEl.disabled = false;
       bgmFadeInEl.disabled = false;
       bgmFadeOutEl.disabled = false;
+      if (segment.track === "sfx") {
+        selectedBlock = {
+          type: "sfx",
+          startTime: segment.start,
+          duration: Math.max(0, segment.end - segment.start),
+          file: segment.file,
+          volume: segment.volume,
+          fadeIn: segment.fadeIn,
+          fadeOut: segment.fadeOut,
+          name: segment.name,
+        };
+        console.log("Block SELECTED and stored:", selectedBlock);
+      } else {
+        selectedBlock = {
+          type: "bgm",
+          startTime: segment.start,
+          duration: Math.max(0, segment.end - segment.start),
+          file: segment.file || bgmUploadPath,
+          volume: segment.volume,
+          fadeIn: segment.fadeIn,
+          fadeOut: segment.fadeOut,
+          offset: segment.offset,
+          name: segment.name,
+        };
+        console.log("Block SELECTED and stored:", selectedBlock);
+      }
       updateMixAvailability();
       persistLayout();
     };
@@ -1356,7 +1530,12 @@
         rightHandle.dataset.handle = "right";
         el.appendChild(leftHandle);
         el.appendChild(rightHandle);
-        el.addEventListener("mousedown", (event) => startDrag(event, segment, el));
+        el.addEventListener("mousedown", (event) => {
+          event.stopPropagation();
+          event.preventDefault();
+          selectBgm(segment.id);
+          startDrag(event, segment, el);
+        });
         el.addEventListener("click", (event) => {
           event.stopPropagation();
           selectBgm(segment.id);
@@ -1374,7 +1553,10 @@
         const width = Math.max(24, (segment.end - segment.start) * timelinePxPerSec);
         el.style.left = `${left}px`;
         el.style.width = `${width}px`;
-        el.textContent = segment.name;
+        const label = document.createElement("span");
+        label.className = "segment-label";
+        label.textContent = segment.name;
+        el.appendChild(label);
         segment.element = el;
         const leftHandle = document.createElement("span");
         leftHandle.className = "handle left";
@@ -1384,7 +1566,110 @@
         rightHandle.dataset.handle = "right";
         el.appendChild(leftHandle);
         el.appendChild(rightHandle);
-        el.addEventListener("mousedown", (event) => startDrag(event, segment, el));
+        const fadeInIndicator = document.createElement("button");
+        fadeInIndicator.type = "button";
+        fadeInIndicator.className = "fade-indicator fade-in";
+        const fadeInValue = document.createElement("span");
+        fadeInValue.className = "fade-label";
+        const fadeInInput = document.createElement("input");
+        fadeInInput.type = "number";
+        fadeInInput.min = "0";
+        fadeInInput.max = "10";
+        fadeInInput.step = "0.1";
+        fadeInIndicator.appendChild(fadeInValue);
+        fadeInIndicator.appendChild(fadeInInput);
+        const fadeOutIndicator = document.createElement("button");
+        fadeOutIndicator.type = "button";
+        fadeOutIndicator.className = "fade-indicator fade-out";
+        const fadeOutValue = document.createElement("span");
+        fadeOutValue.className = "fade-label";
+        const fadeOutInput = document.createElement("input");
+        fadeOutInput.type = "number";
+        fadeOutInput.min = "0";
+        fadeOutInput.max = "10";
+        fadeOutInput.step = "0.1";
+        fadeOutIndicator.appendChild(fadeOutValue);
+        fadeOutIndicator.appendChild(fadeOutInput);
+        const applyFadeIndicator = (indicator, valueEl, inputEl, value, direction) => {
+          const numeric = Number(value) || 0;
+          valueEl.textContent = direction === "in" ? `◢ ${numeric}s` : `${numeric}s ◣`;
+          inputEl.value = numeric.toFixed(1);
+          indicator.classList.toggle("is-empty", numeric <= 0);
+        };
+        const updateFadeVisuals = () => {
+          const duration = Math.max(0.1, segment.end - segment.start);
+          const fadeIn = Math.max(0, Math.min(10, Number(segment.fadeIn) || 0));
+          const fadeOut = Math.max(0, Math.min(10, Number(segment.fadeOut) || 0));
+          const fadeInPct = Math.min(1, fadeIn / duration) * 100;
+          const fadeOutPct = Math.min(1, fadeOut / duration) * 100;
+          el.style.setProperty("--fade-in-pct", `${fadeInPct}%`);
+          el.style.setProperty("--fade-out-pct", `${fadeOutPct}%`);
+          applyFadeIndicator(fadeInIndicator, fadeInValue, fadeInInput, fadeIn, "in");
+          applyFadeIndicator(fadeOutIndicator, fadeOutValue, fadeOutInput, fadeOut, "out");
+        };
+        const beginEdit = (indicator, inputEl) => {
+          indicator.classList.add("editing");
+          inputEl.focus();
+          inputEl.select();
+        };
+        const endEdit = (indicator) => {
+          indicator.classList.remove("editing");
+        };
+        fadeInIndicator.addEventListener("click", (event) => {
+          event.stopPropagation();
+          beginEdit(fadeInIndicator, fadeInInput);
+        });
+        fadeOutIndicator.addEventListener("click", (event) => {
+          event.stopPropagation();
+          beginEdit(fadeOutIndicator, fadeOutInput);
+        });
+        const handleFadeInput = (inputEl, indicator, type) => {
+          const numeric = Math.max(0, Math.min(10, parseFloat(inputEl.value || 0)));
+          if (type === "in") {
+            segment.fadeIn = numeric;
+          } else {
+            segment.fadeOut = numeric;
+          }
+          updateFadeVisuals();
+          persistLayout();
+          if (wavesurfer && wavesurfer.isPlaying()) {
+            startPreviewMix(wavesurfer.getCurrentTime());
+          }
+          endEdit(indicator);
+        };
+        fadeInInput.addEventListener("change", (event) => {
+          event.stopPropagation();
+          handleFadeInput(fadeInInput, fadeInIndicator, "in");
+        });
+        fadeOutInput.addEventListener("change", (event) => {
+          event.stopPropagation();
+          handleFadeInput(fadeOutInput, fadeOutIndicator, "out");
+        });
+        fadeInInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            handleFadeInput(fadeInInput, fadeInIndicator, "in");
+          }
+        });
+        fadeOutInput.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            handleFadeInput(fadeOutInput, fadeOutIndicator, "out");
+          }
+        });
+        fadeInInput.addEventListener("blur", () => endEdit(fadeInIndicator));
+        fadeOutInput.addEventListener("blur", () => endEdit(fadeOutIndicator));
+        fadeInIndicator.addEventListener("mousedown", (event) => event.stopPropagation());
+        fadeOutIndicator.addEventListener("mousedown", (event) => event.stopPropagation());
+        el.appendChild(fadeInIndicator);
+        el.appendChild(fadeOutIndicator);
+        updateFadeVisuals();
+        el.addEventListener("mousedown", (event) => {
+          event.stopPropagation();
+          event.preventDefault();
+          selectBgm(segment.id);
+          startDrag(event, segment, el);
+        });
         el.addEventListener("click", (event) => {
           event.stopPropagation();
           selectBgm(segment.id);
@@ -1749,7 +2034,7 @@
             updateStatus("長時間録音のため直接保存します。");
             const extension = mimeTypeToExtension(blob.type || recordingMimeType) || "webm";
             await uploadRecording(blob, getAutoRecordingFileName(extension), false);
-            await reloadAutoForced(0, false);
+            await reloadAutoForced(0, false, "/api/auto", true);
           } else {
             updateStatus("録音を処理中…");
             const arrayBuffer = await blob.arrayBuffer();
@@ -1780,7 +2065,7 @@
               updateStatus("長時間録音のため直接保存します。");
               const extension = mimeTypeToExtension(blob.type || recordingMimeType) || "webm";
               await uploadRecording(blob, getAutoRecordingFileName(extension), false);
-              await reloadAutoForced(0, false);
+              await reloadAutoForced(0, false, "/api/auto", true);
             } finally {
               await audioContext.close();
             }
@@ -1917,7 +2202,7 @@
       seekToTime(current + delta);
     };
 
-    const initWaveform = (blob, label, isAuto) => {
+    const initWaveform = (blob, label, isAuto, preserveLayout = false) => {
       if (wavesurfer) {
         wavesurfer.destroy();
       }
@@ -1929,25 +2214,27 @@
       fileLabel.textContent = label || (isAuto ? "auto" : "読み込み済み");
       hasVoiceAudio = true;
       updateEmptyState();
+      if (!preserveLayout) {
       bgmSegments = [];
       sfxSegments = [];
-      selectedBgmId = null;
-      bgmFile = null;
-      bgmUploadPath = null;
-      bgmDuration = 0;
-      previewBgmBuffer = null;
-      previewSfxBuffers = new Map();
-      if (bgmWaveSurfer) {
-        bgmWaveSurfer.destroy();
-        bgmWaveSurfer = null;
+        selectedBgmId = null;
+        bgmFile = null;
+        bgmUploadPath = null;
+        bgmDuration = 0;
+        previewBgmBuffer = null;
+        previewSfxBuffers = new Map();
+        if (bgmWaveSurfer) {
+          bgmWaveSurfer.destroy();
+          bgmWaveSurfer = null;
+        }
+        if (bgmObjectUrl) {
+          URL.revokeObjectURL(bgmObjectUrl);
+          bgmObjectUrl = null;
+        }
+        bgmWaveformEl.style.width = "0px";
+        bgmFileLabel.textContent = "BGM未読込";
+        bgmPanel.classList.remove("bgm-loaded");
       }
-      if (bgmObjectUrl) {
-        URL.revokeObjectURL(bgmObjectUrl);
-        bgmObjectUrl = null;
-      }
-      bgmWaveformEl.style.width = "0px";
-      bgmFileLabel.textContent = "BGM未読込";
-      bgmPanel.classList.remove("bgm-loaded");
       updateBgmPlaceholder();
       renderBgmSegments(false);
       selection = { start: null, end: null };
@@ -2080,7 +2367,7 @@
       wavesurfer.load(activeObjectUrl);
     };
 
-    const loadFromUrl = async (url, label, isAuto, seekTime = null, play = false) => {
+    const loadFromUrl = async (url, label, isAuto, seekTime = null, play = false, preserveLayout = false) => {
       try {
         updateStatus("読み込み中…");
         console.log("loadFromUrl fetch", { url, label, isAuto });
@@ -2089,8 +2376,11 @@
           if (isAuto && res.status === 404) {
             hasVoiceAudio = false;
             updateMixAvailability();
-        updateStatus("準備完了");
+            updateStatus("準備完了");
             updateEmptyState();
+            if (preserveLayout) {
+              renderBgmSegments(false);
+            }
             return;
           }
           throw new Error(`Failed to load ${url}`);
@@ -2101,7 +2391,7 @@
         console.log("loadFromUrl blob header", { bytes: Array.from(new Uint8Array(headerBuffer)) });
         pendingSeekTime = seekTime;
         pendingPlay = play;
-        initWaveform(blob, label, isAuto);
+        initWaveform(blob, label, isAuto, preserveLayout);
         updatePlayControls();
       } catch (err) {
         console.error(err);
@@ -2109,10 +2399,13 @@
       }
     };
 
-    const reloadAuto = async (seekTime, play, url = "/api/auto") => {
+    const reloadAuto = async (seekTime, play, url = "/api/auto", preserveLayout = true) => {
       if (!autoMode) {
         updateStatus("自動録音のみ削除できます。", true);
         return;
+      }
+      if (typeof url !== "string" || !url) {
+        url = "auto.wav";
       }
       const cacheBust = `${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`;
       console.log("reloadAuto", { cacheBust, seekTime, play });
@@ -2125,13 +2418,13 @@
         URL.revokeObjectURL(activeObjectUrl);
         activeObjectUrl = null;
       }
-      await loadFromUrl(cacheBust, "auto", true, seekTime, play);
+      await loadFromUrl(cacheBust, "auto", true, seekTime, play, preserveLayout);
     };
 
-    const reloadAutoForced = async (seekTime, play, url = "/api/auto") => {
+    const reloadAutoForced = async (seekTime, play, url = "/api/auto", preserveLayout = true) => {
       autoMode = true;
       console.log("reloadAutoForced");
-      await reloadAuto(seekTime, play, url);
+      await reloadAuto(seekTime, play, url, preserveLayout);
     };
 
     const deleteSelection = async () => {
@@ -2181,7 +2474,7 @@
         }
         console.log("deleteSelection clearing selection + reload");
         clearSelection();
-        await reloadAuto(targetTime, wasPlaying);
+        await reloadAuto(targetTime, wasPlaying, "/api/auto", true);
       updateStatus("削除しました。");
       } catch (err) {
         console.error(err);
@@ -2209,7 +2502,7 @@
           throw new Error(text || `HTTP ${res.status}`);
         }
         clearSelection();
-        await reloadAuto(currentTime, wasPlaying);
+        await reloadAuto(currentTime, wasPlaying, "/api/auto", true);
         updateStatus("復元しました。");
       } catch (err) {
         console.error(err);
@@ -2239,7 +2532,7 @@
         .then(() => {
           updateStatus("アップロード完了。");
           previewStartOffset = 0;
-          reloadAutoForced(0, false);
+          reloadAutoForced(0, false, "/api/auto", true);
         })
         .catch((err) => {
           console.error(err);
@@ -2427,14 +2720,16 @@
 
 
     if (bgmTimelineWrap) {
-      bgmTimelineWrap.addEventListener("click", (event) => {
+      bgmTimelineWrap.addEventListener("mousedown", (event) => {
         if (!bgmFile && sfxSegments.length === 0) {
           bgmInput.click();
           showControls();
           return;
         }
-        if (event.detail > 1) return;
+        if (event.target !== bgmTimelineWrap) return;
         selectBgm(null);
+        selectedBlock = null;
+        console.log("Selection cleared: clicked background");
         showControls();
       });
     }
@@ -2820,6 +3115,22 @@
       console.log("KEYDOWN:", event.key, event.code, event.target?.tagName);
       if (event.target && ["INPUT", "TEXTAREA", "BUTTON"].includes(event.target.tagName) && event.target.type !== "file") return;
       const key = event.key;
+      if (key === "Meta") {
+        isMetaDown = true;
+      }
+      const hasMeta = event.metaKey || isMetaDown;
+      const hasCtrl = event.ctrlKey;
+      console.log("Key combo:", { hasMeta, hasCtrl, key: event.key, selectedBlock });
+      if ((hasMeta || hasCtrl) && key.toLowerCase() === "r") {
+        return;
+      }
+      if (recordingActive && (key.toLowerCase() === "r" || key === " ")) {
+        event.preventDefault();
+        event.stopPropagation();
+        console.log("STOP RECORDING via", key);
+        stopRecording();
+        return;
+      }
       detachHiddenFileInputs();
       if (recordingActive && key !== "r" && key !== "R") {
         return;
@@ -2866,6 +3177,45 @@
       if (key === "?") {
         event.preventDefault();
         toggleShortcuts();
+        showControls();
+        return;
+      }
+      if ((hasMeta || hasCtrl) && key.toLowerCase() === "c" && !event.repeat) {
+        if (selectedBlock) {
+          event.preventDefault();
+          clipboardSegment = {
+            ...selectedBlock,
+            originalEndTime: selectedBlock.startTime + selectedBlock.duration,
+          };
+          copyTime = Date.now();
+          console.log("COPIED block", clipboardSegment);
+          updateStatus("ブロックをコピーしました。");
+          const selected = getSelectedSegment();
+          addCopyHighlight(selected);
+        } else {
+          console.log("No block selected to copy");
+          updateStatus("コピーするブロックがありません。", true);
+        }
+        return;
+      }
+      if ((hasMeta || hasCtrl) && key.toLowerCase() === "v" && !event.repeat) {
+        event.preventDefault();
+        if (!clipboardSegment) {
+          console.log("No block selected to paste");
+          updateStatus("貼り付けるブロックがありません。", true);
+          return;
+        }
+        const currentTime = getPlaybackTime();
+        const timeSinceCopy = Date.now() - copyTime;
+        const playheadNearCopied = Math.abs(currentTime - clipboardSegment.startTime) < 2;
+        let pasteTime = currentTime;
+        if (timeSinceCopy < 3000 || playheadNearCopied) {
+          pasteTime = (clipboardSegment.originalEndTime ?? clipboardSegment.startTime) + 0.1;
+        }
+        console.log("PASTE block at", pasteTime, clipboardSegment);
+        pasteSegmentAt(clipboardSegment, pasteTime);
+        clipboardSegment.originalEndTime = pasteTime + (clipboardSegment.duration || 0);
+        updateStatus("ブロックを貼り付けました。");
         showControls();
         return;
       }
@@ -2967,6 +3317,8 @@
         }
         clearSelection();
         selectBgm(null);
+        selectedBlock = null;
+        clipboardSegment = null;
         editorEl.classList.remove("show-status", "show-shortcuts");
         showControls();
         return;
@@ -2978,7 +3330,13 @@
           showControls();
         }
       }
-    });
+    }, true);
+
+    document.addEventListener("keyup", (event) => {
+      if (event.key === "Meta") {
+        isMetaDown = false;
+      }
+    }, true);
 
     const params = new URLSearchParams(window.location.search);
     const fileParam = params.get("file");
@@ -2986,7 +3344,7 @@
     const isAutoFile = fileParamLower === "auto" || fileParamLower.startsWith("auto.");
     if (fileParam) {
       const url = isAutoFile ? "/api/auto" : fileParam;
-      loadFromUrl(url, fileParam, isAutoFile);
+      loadFromUrl(url, fileParam, isAutoFile, null, false, false);
     }
   </script>
 </body>
