@@ -11,6 +11,9 @@
     :root {
       color-scheme: dark;
     }
+    *::-webkit-scrollbar {
+      display: none; /* Chrome/Safari */
+    }
     body {
       margin: 0;
       min-height: 100vh;
@@ -42,6 +45,10 @@
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
       position: relative;
       transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    #editor {
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
     }
     .panel.selection-active {
       border-color: #60a5fa;
@@ -265,18 +272,30 @@
     }
     #waveform {
       min-width: 100%;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
     }
-    #waveformWrap {
+    #editorScrollContainer {
       margin-top: 0;
       overflow-x: auto;
       overflow-y: hidden;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
       border: 1px solid #2d2a27;
       border-radius: 10px;
       background: #1f1d1b;
       padding: 4px 0;
       position: relative;
     }
-    .zoom-controls {
+    #editorInner {
+      position: relative;
+      min-width: 100%;
+    }
+    #waveformWrap {
+      margin-top: 0;
+      position: relative;
+    }
+    #editorScrollContainer .zoom-controls {
       position: absolute;
       top: 6px;
       right: 8px;
@@ -292,7 +311,7 @@
       transition: opacity 0.3s ease;
       z-index: 6;
     }
-    #waveformWrap.show-zoom .zoom-controls {
+    #editorScrollContainer.show-zoom .zoom-controls {
       opacity: 1;
       pointer-events: auto;
     }
@@ -318,6 +337,8 @@
     }
     .bgm-panel {
       margin: 0 0 4px;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
     }
     .bgm-panel.bgm-loaded {
       margin-top: 0;
@@ -339,13 +360,10 @@
     }
     #bgmTimelineWrap {
       margin-top: 0;
-      overflow-x: auto;
-      overflow-y: hidden;
-      border: 1px solid #2d2a27;
-      border-radius: 10px;
-      background: #1f1d1b;
-      padding: 4px 0;
       position: relative;
+    }
+    #editorScrollContainer::-webkit-scrollbar {
+      display: none;
     }
     #bgmTimelineWrap.bgm-empty {
       border-style: dashed;
@@ -354,6 +372,18 @@
       position: relative;
       height: 104px;
       min-width: 100%;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE/Edge */
+    }
+    #shared-playhead {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 2px;
+      height: 100%;
+      background: #f0c000;
+      pointer-events: none;
+      z-index: 9999;
     }
     .bgm-placeholder {
       position: absolute;
@@ -372,14 +402,11 @@
     #bgmMarkers {
       display: none;
     }
-    #bgmWaveform {
+    .bgm-waveform-canvas {
       position: absolute;
-      top: 32px;
-      left: 0;
-      right: 0;
-      height: 64px;
+      inset: 0;
       pointer-events: none;
-      opacity: 0.75;
+      opacity: 0.7;
       z-index: 1;
     }
     .bgm-marker {
@@ -623,16 +650,6 @@
       border-color: #60a5fa;
       color: #f9fafb;
     }
-    .track-playhead {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: #fbbf24;
-      pointer-events: none;
-      z-index: 5;
-      opacity: 0.8;
-    }
     .bgm-drop {
       display: none;
     }
@@ -755,9 +772,20 @@
       <div class="voice-header">
         <span class="track-label">VOICE</span>
       </div>
-    <div id="waveformWrap">
-      <div id="waveform"></div>
-      <span class="track-playhead" id="voicePlayhead"></span>
+    <div id="editorScrollContainer">
+      <div id="editorInner">
+        <div id="waveformWrap">
+          <div id="waveform"></div>
+        </div>
+        <div id="bgmTimelineWrap">
+          <div id="bgmTimeline">
+            <div class="bgm-placeholder" id="bgmPlaceholder">BGMを追加</div>
+        <div id="bgmMarkers"></div>
+        <div id="sfxLane"></div>
+        <div id="bgmLane"></div>
+          </div>
+        </div>
+      </div>
       <div class="zoom-controls" id="zoomControls">
         <span class="zoom-indicator">縮尺 <strong id="zoomLevel">--</strong></span>
         <button type="button" id="resetZoom" disabled>戻す</button>
@@ -773,16 +801,6 @@
     <div class="bgm-panel">
       <div class="bgm-header">
         <span class="bgm-track-label">BGM</span>
-      </div>
-      <div id="bgmTimelineWrap">
-        <div id="bgmTimeline">
-          <div class="bgm-placeholder" id="bgmPlaceholder">BGMを追加</div>
-          <div id="bgmMarkers"></div>
-          <div id="bgmWaveform"></div>
-          <span class="track-playhead" id="bgmPlayhead"></span>
-          <div id="sfxLane"></div>
-          <div id="bgmLane"></div>
-        </div>
       </div>
       <div class="bgm-info">
         <span>開始 <strong id="bgmStart">--:--.--</strong></span>
@@ -834,6 +852,8 @@
     const editorEl = document.getElementById("editor");
       const zoomLevelEl = document.getElementById("zoomLevel");
       const resetZoomBtn = document.getElementById("resetZoom");
+    const editorScrollContainer = document.getElementById("editorScrollContainer");
+    const editorInner = document.getElementById("editorInner");
     const waveformWrap = document.getElementById("waveformWrap");
     const waveformEl = document.getElementById("waveform");
     const bgmTimelineWrap = document.getElementById("bgmTimelineWrap");
@@ -841,7 +861,6 @@
     const bgmLane = document.getElementById("bgmLane");
     const sfxLane = document.getElementById("sfxLane");
     const bgmMarkers = document.getElementById("bgmMarkers");
-    const bgmWaveformEl = document.getElementById("bgmWaveform");
     const bgmInput = document.getElementById("bgmInput");
     const sfxInput = document.getElementById("sfxInput");
     const bgmPlaceholder = document.getElementById("bgmPlaceholder");
@@ -849,8 +868,6 @@
     const mixBgmBtn = document.getElementById("mixBgm");
     const bgmFileLabel = document.getElementById("bgmFileLabel");
     const bgmPanel = document.querySelector(".bgm-panel");
-    const voicePlayhead = document.getElementById("voicePlayhead");
-    const bgmPlayhead = document.getElementById("bgmPlayhead");
     const bgmStartEl = document.getElementById("bgmStart");
     const bgmEndEl = document.getElementById("bgmEnd");
     const bgmVolumeEl = document.getElementById("bgmVolume");
@@ -880,14 +897,17 @@
     let bgmFile = null;
     let bgmUploadPath = null;
     let bgmDuration = 0;
-    let bgmObjectUrl = null;
-    let bgmWaveSurfer = null;
+    let bgmWaveformBuffer = null;
+    let bgmWaveformPeaks = null;
     let previewContext = null;
     let previewStartOffset = 0;
     let previewBgmBuffer = null;
     let previewSfxBuffers = new Map();
     let previewSources = [];
     let previewGain = null;
+    let previewMixStartTime = null;
+    let sharedPlayheadEl = null;
+    let playheadRafId = null;
     let clipboardSegment = null;
     let copyTime = 0;
     let isMetaDown = false;
@@ -1064,17 +1084,30 @@
       if (!wavesurfer) return;
       zoomLevel = Math.max(1, value);
       wavesurfer.zoom(zoomLevel);
-      if (bgmWaveSurfer) {
-        bgmWaveSurfer.zoom(zoomLevel);
-      }
+      // No separate BGM WaveSurfer; waveform is drawn per block.
       updateZoomUI();
       updateTimelineScale();
     };
 
+    const syncTimelineToWaveform = () => {
+      if (!wavesurfer) return;
+      const duration = wavesurfer.getDuration() || 0;
+      if (!duration) return;
+      const containerWidth = editorScrollContainer ? editorScrollContainer.clientWidth : waveformWrap.clientWidth;
+      const waveformWidth = Math.max(containerWidth, duration * zoomLevel);
+      timelinePxPerSec = waveformWidth / duration;
+      const totalWidth = Math.max(containerWidth, waveformWidth);
+      if (editorInner) {
+        editorInner.style.width = `${totalWidth}px`;
+      }
+      bgmTimeline.style.width = `${totalWidth}px`;
+    };
+
     const resetZoom = () => {
       applyZoom(zoomBase);
-      waveformWrap.scrollLeft = 0;
-      bgmTimelineWrap.scrollLeft = 0;
+      if (editorScrollContainer) {
+        editorScrollContainer.scrollLeft = 0;
+      }
     };
 
     const updatePlayControls = () => {
@@ -1367,22 +1400,20 @@
     };
 
     const refreshTimelineWidth = () => {
-      const duration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
+      if (!wavesurfer) return;
+      const duration = wavesurfer.getDuration() || 0;
       if (!duration) return;
+      syncTimelineToWaveform();
       const timelineDuration = getTimelineDuration();
-      const voiceWidth = Math.max(waveformWrap.clientWidth, duration * timelinePxPerSec);
       const timelineWidth = Math.max(bgmTimelineWrap.clientWidth, timelineDuration * timelinePxPerSec);
       bgmTimeline.style.width = `${timelineWidth}px`;
-      if (waveformEl) {
-        waveformEl.style.width = `${voiceWidth}px`;
-      }
     };
 
     const updateTimelineScale = () => {
-      const duration = wavesurfer ? wavesurfer.getDuration() || 0 : 0;
+      if (!wavesurfer) return;
+      const duration = wavesurfer.getDuration() || 0;
       if (!duration) return;
-      const baseWidth = Math.max(waveformWrap.clientWidth, duration * zoomLevel);
-      timelinePxPerSec = baseWidth / duration;
+      refreshTimelineWidth();
       renderMarkers(getTimelineDuration());
       renderBgmSegments(false);
       updateBgmWaveformWidth();
@@ -1504,177 +1535,227 @@
 
     const renderBgmSegments = (persist = true) => {
       refreshTimelineWidth();
-      bgmLane.innerHTML = "";
-      if (sfxLane) {
-        sfxLane.innerHTML = "";
-      }
+      const buildSegment = (segment, isSfx) => {
+        const existing = segment.element;
+        const el = existing || document.createElement("div");
+        el.className = isSfx ? "sfx-segment" : "bgm-segment";
+        if (segment.id === selectedBgmId) {
+          el.classList.add("selected");
+        } else {
+          el.classList.remove("selected");
+        }
+        el.dataset.id = segment.id;
+        const left = segment.start * timelinePxPerSec;
+        const width = Math.max(isSfx ? 18 : 24, (segment.end - segment.start) * timelinePxPerSec);
+        el.style.left = `${left}px`;
+        el.style.width = `${width}px`;
+        if (!existing) {
+          const leftHandle = document.createElement("span");
+          leftHandle.className = "handle left";
+          leftHandle.dataset.handle = "left";
+          const rightHandle = document.createElement("span");
+          rightHandle.className = "handle right";
+          rightHandle.dataset.handle = "right";
+          el.appendChild(leftHandle);
+          el.appendChild(rightHandle);
+          el.addEventListener("mousedown", (event) => {
+            event.stopPropagation();
+            event.preventDefault();
+            selectBgm(segment.id);
+            startDrag(event, segment, el);
+          });
+          el.addEventListener("click", (event) => {
+            event.stopPropagation();
+            selectBgm(segment.id);
+          });
+          if (!isSfx) {
+            const label = document.createElement("span");
+            label.className = "segment-label";
+            label.textContent = segment.name;
+            el.insertBefore(label, leftHandle);
+            el.style.overflow = "hidden";
+            const canvas = document.createElement("canvas");
+            canvas.className = "bgm-waveform-canvas";
+            canvas.style.top = "2px";
+            canvas.style.bottom = "2px";
+            canvas.style.left = "0";
+            canvas.style.right = "0";
+            el.appendChild(canvas);
+            const fadeInIndicator = document.createElement("button");
+            fadeInIndicator.type = "button";
+            fadeInIndicator.className = "fade-indicator fade-in";
+            const fadeInValue = document.createElement("span");
+            fadeInValue.className = "fade-label";
+            const fadeInInput = document.createElement("input");
+            fadeInInput.type = "number";
+            fadeInInput.min = "0";
+            fadeInInput.max = "10";
+            fadeInInput.step = "0.1";
+            fadeInIndicator.appendChild(fadeInValue);
+            fadeInIndicator.appendChild(fadeInInput);
+            const fadeOutIndicator = document.createElement("button");
+            fadeOutIndicator.type = "button";
+            fadeOutIndicator.className = "fade-indicator fade-out";
+            const fadeOutValue = document.createElement("span");
+            fadeOutValue.className = "fade-label";
+            const fadeOutInput = document.createElement("input");
+            fadeOutInput.type = "number";
+            fadeOutInput.min = "0";
+            fadeOutInput.max = "10";
+            fadeOutInput.step = "0.1";
+            fadeOutIndicator.appendChild(fadeOutValue);
+            fadeOutIndicator.appendChild(fadeOutInput);
+            const applyFadeIndicator = (indicator, valueEl, inputEl, value, direction) => {
+              const numeric = Number(value) || 0;
+              valueEl.textContent = direction === "in" ? `◢ ${numeric}s` : `${numeric}s ◣`;
+              inputEl.value = numeric.toFixed(1);
+              indicator.classList.toggle("is-empty", numeric <= 0);
+            };
+            const updateFadeVisuals = () => {
+              const duration = Math.max(0.1, segment.end - segment.start);
+              const fadeIn = Math.max(0, Math.min(10, Number(segment.fadeIn) || 0));
+              const fadeOut = Math.max(0, Math.min(10, Number(segment.fadeOut) || 0));
+              const fadeInPct = Math.min(1, fadeIn / duration) * 100;
+              const fadeOutPct = Math.min(1, fadeOut / duration) * 100;
+              el.style.setProperty("--fade-in-pct", `${fadeInPct}%`);
+              el.style.setProperty("--fade-out-pct", `${fadeOutPct}%`);
+              applyFadeIndicator(fadeInIndicator, fadeInValue, fadeInInput, fadeIn, "in");
+              applyFadeIndicator(fadeOutIndicator, fadeOutValue, fadeOutInput, fadeOut, "out");
+            };
+            const beginEdit = (indicator, inputEl) => {
+              indicator.classList.add("editing");
+              inputEl.focus();
+              inputEl.select();
+            };
+            const endEdit = (indicator) => {
+              indicator.classList.remove("editing");
+            };
+            fadeInIndicator.addEventListener("click", (event) => {
+              event.stopPropagation();
+              beginEdit(fadeInIndicator, fadeInInput);
+            });
+            fadeOutIndicator.addEventListener("click", (event) => {
+              event.stopPropagation();
+              beginEdit(fadeOutIndicator, fadeOutInput);
+            });
+            const handleFadeInput = (inputEl, indicator, type) => {
+              const numeric = Math.max(0, Math.min(10, parseFloat(inputEl.value || 0)));
+              if (type === "in") {
+                segment.fadeIn = numeric;
+              } else {
+                segment.fadeOut = numeric;
+              }
+              updateFadeVisuals();
+              persistLayout();
+              if (wavesurfer && wavesurfer.isPlaying()) {
+                startPreviewMix(wavesurfer.getCurrentTime());
+              }
+              endEdit(indicator);
+            };
+            fadeInInput.addEventListener("change", (event) => {
+              event.stopPropagation();
+              handleFadeInput(fadeInInput, fadeInIndicator, "in");
+            });
+            fadeOutInput.addEventListener("change", (event) => {
+              event.stopPropagation();
+              handleFadeInput(fadeOutInput, fadeOutIndicator, "out");
+            });
+            fadeInInput.addEventListener("keydown", (event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleFadeInput(fadeInInput, fadeInIndicator, "in");
+              }
+            });
+            fadeOutInput.addEventListener("keydown", (event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                handleFadeInput(fadeOutInput, fadeOutIndicator, "out");
+              }
+            });
+            fadeInInput.addEventListener("blur", () => endEdit(fadeInIndicator));
+            fadeOutInput.addEventListener("blur", () => endEdit(fadeOutIndicator));
+            fadeInIndicator.addEventListener("mousedown", (event) => event.stopPropagation());
+            fadeOutIndicator.addEventListener("mousedown", (event) => event.stopPropagation());
+            el.appendChild(fadeInIndicator);
+            el.appendChild(fadeOutIndicator);
+            updateFadeVisuals();
+          } else {
+            el.textContent = segment.name;
+          }
+          segment.element = el;
+        }
+        if (!isSfx) {
+          const canvas = el.querySelector(".bgm-waveform-canvas");
+          if (canvas) {
+            const blockWidth = Math.max(1, Math.round(width));
+            const blockHeight = Math.max(1, Math.round(el.clientHeight || 44));
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.round(blockWidth * dpr);
+            canvas.height = Math.round(blockHeight * dpr);
+            canvas.style.width = `${blockWidth}px`;
+            canvas.style.height = `${blockHeight}px`;
+            const ctx = canvas.getContext("2d");
+            if (ctx) {
+              ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+              ctx.clearRect(0, 0, blockWidth, blockHeight);
+              if (bgmWaveformPeaks && bgmWaveformPeaks.length > 0 && bgmWaveformBuffer) {
+                const audioDuration = bgmWaveformBuffer.duration || bgmDuration || segment.duration || 0;
+                const segmentDuration = Math.max(0, segment.end - segment.start);
+                const startInAudio = Math.max(0, segment.offset || 0);
+                const endInAudio = Math.min(audioDuration, startInAudio + segmentDuration);
+                if (audioDuration > 0 && endInAudio > startInAudio) {
+                  const startIdx = Math.floor((startInAudio / audioDuration) * bgmWaveformPeaks.length);
+                  const endIdx = Math.max(
+                    startIdx + 1,
+                    Math.ceil((endInAudio / audioDuration) * bgmWaveformPeaks.length)
+                  );
+                  const visiblePeaks = bgmWaveformPeaks.slice(startIdx, endIdx);
+                  if (visiblePeaks.length > 0) {
+                    const barWidth = blockWidth / visiblePeaks.length;
+                    const centerY = blockHeight / 2;
+                    ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+                    for (let i = 0; i < visiblePeaks.length; i += 1) {
+                      const barHeight = visiblePeaks[i] * blockHeight * 0.8;
+                      const x = i * barWidth;
+                      ctx.fillRect(
+                        x,
+                        centerY - barHeight / 2,
+                        Math.max(1, barWidth - 1),
+                        barHeight
+                      );
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+        return el;
+      };
+      const existingSfx = new Set();
       sfxSegments.forEach((segment) => {
         if (!sfxLane) return;
-        const el = document.createElement("div");
-        el.className = "sfx-segment";
-        if (segment.id === selectedBgmId) {
-          el.classList.add("selected");
+        const el = buildSegment(segment, true);
+        existingSfx.add(el);
+        if (!el.parentElement) {
+          sfxLane.appendChild(el);
         }
-        el.dataset.id = segment.id;
-        const left = segment.start * timelinePxPerSec;
-        const width = Math.max(18, (segment.end - segment.start) * timelinePxPerSec);
-        el.style.left = `${left}px`;
-        el.style.width = `${width}px`;
-        el.textContent = segment.name;
-        segment.element = el;
-        const leftHandle = document.createElement("span");
-        leftHandle.className = "handle left";
-        leftHandle.dataset.handle = "left";
-        const rightHandle = document.createElement("span");
-        rightHandle.className = "handle right";
-        rightHandle.dataset.handle = "right";
-        el.appendChild(leftHandle);
-        el.appendChild(rightHandle);
-        el.addEventListener("mousedown", (event) => {
-          event.stopPropagation();
-          event.preventDefault();
-          selectBgm(segment.id);
-          startDrag(event, segment, el);
-        });
-        el.addEventListener("click", (event) => {
-          event.stopPropagation();
-          selectBgm(segment.id);
-        });
-        sfxLane.appendChild(el);
       });
+      if (sfxLane) {
+        Array.from(sfxLane.children).forEach((child) => {
+          if (!existingSfx.has(child)) child.remove();
+        });
+      }
+      const existingBgm = new Set();
       bgmSegments.forEach((segment) => {
-        const el = document.createElement("div");
-        el.className = "bgm-segment";
-        if (segment.id === selectedBgmId) {
-          el.classList.add("selected");
+        const el = buildSegment(segment, false);
+        existingBgm.add(el);
+        if (!el.parentElement) {
+          bgmLane.appendChild(el);
         }
-        el.dataset.id = segment.id;
-        const left = segment.start * timelinePxPerSec;
-        const width = Math.max(24, (segment.end - segment.start) * timelinePxPerSec);
-        el.style.left = `${left}px`;
-        el.style.width = `${width}px`;
-        const label = document.createElement("span");
-        label.className = "segment-label";
-        label.textContent = segment.name;
-        el.appendChild(label);
-        segment.element = el;
-        const leftHandle = document.createElement("span");
-        leftHandle.className = "handle left";
-        leftHandle.dataset.handle = "left";
-        const rightHandle = document.createElement("span");
-        rightHandle.className = "handle right";
-        rightHandle.dataset.handle = "right";
-        el.appendChild(leftHandle);
-        el.appendChild(rightHandle);
-        const fadeInIndicator = document.createElement("button");
-        fadeInIndicator.type = "button";
-        fadeInIndicator.className = "fade-indicator fade-in";
-        const fadeInValue = document.createElement("span");
-        fadeInValue.className = "fade-label";
-        const fadeInInput = document.createElement("input");
-        fadeInInput.type = "number";
-        fadeInInput.min = "0";
-        fadeInInput.max = "10";
-        fadeInInput.step = "0.1";
-        fadeInIndicator.appendChild(fadeInValue);
-        fadeInIndicator.appendChild(fadeInInput);
-        const fadeOutIndicator = document.createElement("button");
-        fadeOutIndicator.type = "button";
-        fadeOutIndicator.className = "fade-indicator fade-out";
-        const fadeOutValue = document.createElement("span");
-        fadeOutValue.className = "fade-label";
-        const fadeOutInput = document.createElement("input");
-        fadeOutInput.type = "number";
-        fadeOutInput.min = "0";
-        fadeOutInput.max = "10";
-        fadeOutInput.step = "0.1";
-        fadeOutIndicator.appendChild(fadeOutValue);
-        fadeOutIndicator.appendChild(fadeOutInput);
-        const applyFadeIndicator = (indicator, valueEl, inputEl, value, direction) => {
-          const numeric = Number(value) || 0;
-          valueEl.textContent = direction === "in" ? `◢ ${numeric}s` : `${numeric}s ◣`;
-          inputEl.value = numeric.toFixed(1);
-          indicator.classList.toggle("is-empty", numeric <= 0);
-        };
-        const updateFadeVisuals = () => {
-          const duration = Math.max(0.1, segment.end - segment.start);
-          const fadeIn = Math.max(0, Math.min(10, Number(segment.fadeIn) || 0));
-          const fadeOut = Math.max(0, Math.min(10, Number(segment.fadeOut) || 0));
-          const fadeInPct = Math.min(1, fadeIn / duration) * 100;
-          const fadeOutPct = Math.min(1, fadeOut / duration) * 100;
-          el.style.setProperty("--fade-in-pct", `${fadeInPct}%`);
-          el.style.setProperty("--fade-out-pct", `${fadeOutPct}%`);
-          applyFadeIndicator(fadeInIndicator, fadeInValue, fadeInInput, fadeIn, "in");
-          applyFadeIndicator(fadeOutIndicator, fadeOutValue, fadeOutInput, fadeOut, "out");
-        };
-        const beginEdit = (indicator, inputEl) => {
-          indicator.classList.add("editing");
-          inputEl.focus();
-          inputEl.select();
-        };
-        const endEdit = (indicator) => {
-          indicator.classList.remove("editing");
-        };
-        fadeInIndicator.addEventListener("click", (event) => {
-          event.stopPropagation();
-          beginEdit(fadeInIndicator, fadeInInput);
-        });
-        fadeOutIndicator.addEventListener("click", (event) => {
-          event.stopPropagation();
-          beginEdit(fadeOutIndicator, fadeOutInput);
-        });
-        const handleFadeInput = (inputEl, indicator, type) => {
-          const numeric = Math.max(0, Math.min(10, parseFloat(inputEl.value || 0)));
-          if (type === "in") {
-            segment.fadeIn = numeric;
-          } else {
-            segment.fadeOut = numeric;
-          }
-          updateFadeVisuals();
-          persistLayout();
-          if (wavesurfer && wavesurfer.isPlaying()) {
-            startPreviewMix(wavesurfer.getCurrentTime());
-          }
-          endEdit(indicator);
-        };
-        fadeInInput.addEventListener("change", (event) => {
-          event.stopPropagation();
-          handleFadeInput(fadeInInput, fadeInIndicator, "in");
-        });
-        fadeOutInput.addEventListener("change", (event) => {
-          event.stopPropagation();
-          handleFadeInput(fadeOutInput, fadeOutIndicator, "out");
-        });
-        fadeInInput.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            handleFadeInput(fadeInInput, fadeInIndicator, "in");
-          }
-        });
-        fadeOutInput.addEventListener("keydown", (event) => {
-          if (event.key === "Enter") {
-            event.preventDefault();
-            handleFadeInput(fadeOutInput, fadeOutIndicator, "out");
-          }
-        });
-        fadeInInput.addEventListener("blur", () => endEdit(fadeInIndicator));
-        fadeOutInput.addEventListener("blur", () => endEdit(fadeOutIndicator));
-        fadeInIndicator.addEventListener("mousedown", (event) => event.stopPropagation());
-        fadeOutIndicator.addEventListener("mousedown", (event) => event.stopPropagation());
-        el.appendChild(fadeInIndicator);
-        el.appendChild(fadeOutIndicator);
-        updateFadeVisuals();
-        el.addEventListener("mousedown", (event) => {
-          event.stopPropagation();
-          event.preventDefault();
-          selectBgm(segment.id);
-          startDrag(event, segment, el);
-        });
-        el.addEventListener("click", (event) => {
-          event.stopPropagation();
-          selectBgm(segment.id);
-        });
-        bgmLane.appendChild(el);
+      });
+      Array.from(bgmLane.children).forEach((child) => {
+        if (!existingBgm.has(child)) child.remove();
       });
       updateMixAvailability();
       if (
@@ -1692,12 +1773,14 @@
 
     const startDrag = (event, segment, element) => {
       event.preventDefault();
+      event.stopPropagation();
       const handle = event.target.dataset.handle || "move";
       const startX = event.clientX;
       const originalStart = segment.start;
       const originalEnd = segment.end;
       const originalOffset = segment.offset;
-      dragState = { segment, handle, startX, originalStart, originalEnd, originalOffset };
+      const scrollLeft = getScrollLeft();
+      dragState = { segment, handle, startX, originalStart, originalEnd, originalOffset, scrollLeft };
       element.style.cursor = "grabbing";
       document.addEventListener("mousemove", onDragMove);
       document.addEventListener("mouseup", onDragEnd);
@@ -1705,6 +1788,12 @@
 
     const onDragMove = (event) => {
       if (!dragState) return;
+      event.preventDefault();
+      event.stopPropagation();
+      // Keep scroll locked during drag so waveform doesn't move.
+      if (editorScrollContainer && editorScrollContainer.scrollLeft !== dragState.scrollLeft) {
+        editorScrollContainer.scrollLeft = dragState.scrollLeft;
+      }
       const delta = (event.clientX - dragState.startX) / timelinePxPerSec;
       const segment = dragState.segment;
       const minLength = 0.1;
@@ -1809,29 +1898,41 @@
       selectBgm(segment.id);
     };
 
-    const initBgmWaveform = (file) => {
-      if (bgmWaveSurfer) {
-        bgmWaveSurfer.destroy();
+    const buildBgmPeaks = (audioBuffer, numPeaks = 500) => {
+      const channelData = audioBuffer.getChannelData(0);
+      const peaks = [];
+      const samplesPerPeak = Math.max(1, Math.floor(channelData.length / numPeaks));
+      for (let i = 0; i < numPeaks; i += 1) {
+        let max = 0;
+        const start = i * samplesPerPeak;
+        const end = Math.min(channelData.length, start + samplesPerPeak);
+        for (let j = start; j < end; j += 1) {
+          const value = Math.abs(channelData[j]);
+          if (value > max) max = value;
+        }
+        peaks.push(max);
       }
-      if (bgmObjectUrl) {
-        URL.revokeObjectURL(bgmObjectUrl);
+      return peaks;
+    };
+
+    const initBgmWaveform = async (file) => {
+      bgmWaveformBuffer = null;
+      bgmWaveformPeaks = null;
+      if (!file) return;
+      try {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioContext = new AudioContext();
+        const decoded = await audioContext.decodeAudioData(arrayBuffer.slice(0));
+        bgmWaveformBuffer = decoded;
+        bgmWaveformPeaks = buildBgmPeaks(decoded, 500);
+        await audioContext.close();
+        renderBgmSegments(false);
+      } catch (err) {
+        console.error(err);
+        updateStatus("BGMの波形解析に失敗しました。", true);
+        bgmWaveformBuffer = null;
+        bgmWaveformPeaks = null;
       }
-      updateBgmWaveformWidth();
-      bgmObjectUrl = URL.createObjectURL(file);
-      bgmWaveSurfer = WaveSurfer.create({
-        container: "#bgmWaveform",
-        waveColor: "#14532d",
-        progressColor: "#22c55e",
-        cursorColor: "transparent",
-        height: 64,
-        normalize: true,
-        pixelRatio: window.devicePixelRatio || 1,
-        interact: false,
-      });
-      bgmWaveSurfer.on("ready", () => {
-        bgmWaveSurfer.zoom(zoomLevel);
-      });
-      bgmWaveSurfer.load(bgmObjectUrl);
     };
 
     const updateMixAvailability = () => {
@@ -1846,12 +1947,7 @@
     };
 
     const updateBgmWaveformWidth = () => {
-      if (!bgmWaveformEl) return;
-      if (!bgmDuration) {
-        bgmWaveformEl.style.width = "0px";
-        return;
-      }
-      bgmWaveformEl.style.width = `${bgmDuration * timelinePxPerSec}px`;
+      // per-block waveform sizing handled in renderBgmSegments
     };
 
     const ensureBgmUpload = async () => {
@@ -1889,6 +1985,7 @@
         }
       });
       previewSources = [];
+      previewMixStartTime = null;
       if (previewContext && previewContext.state === "running") {
         previewContext.suspend().catch(() => {});
       }
@@ -1909,22 +2006,60 @@
       audio.src = tempUrl;
     });
 
-      const updatePlayheadUI = (time) => {
-        if (!wavesurfer) return;
-        const duration = wavesurfer.getDuration() || 0;
-        if (!duration) return;
-        const clamped = Math.max(0, Math.min(time, duration));
-        const left = clamped * timelinePxPerSec;
-        if (voicePlayhead) {
-          voicePlayhead.style.left = `${left}px`;
-        }
-        if (bgmPlayhead) {
-          bgmPlayhead.style.left = `${left}px`;
-        }
-        if (currentTimeEl) {
-          currentTimeEl.textContent = formatTime(clamped);
-        }
-      };
+    const updatePlayheadUI = (time) => {
+      if (!wavesurfer) return;
+      const duration = wavesurfer.getDuration() || 0;
+      if (!duration) return;
+      const clamped = Math.max(0, Math.min(time, duration));
+      if (currentTimeEl) {
+        currentTimeEl.textContent = formatTime(clamped);
+      }
+    };
+
+    const ensureSharedPlayhead = () => {
+      if (!editorInner) return null;
+      if (!sharedPlayheadEl) {
+        sharedPlayheadEl = document.createElement("div");
+        sharedPlayheadEl.id = "shared-playhead";
+        editorInner.style.position = "relative";
+        editorInner.appendChild(sharedPlayheadEl);
+      }
+      return sharedPlayheadEl;
+    };
+
+    const updateSharedPlayhead = () => {
+      if (!wavesurfer || !sharedPlayheadEl) return;
+      const duration = wavesurfer.getDuration() || 0;
+      if (!duration) return;
+      const wrapper = wavesurfer.getWrapper ? wavesurfer.getWrapper() : null;
+      const totalWidth = wrapper?.scrollWidth || editorInner?.scrollWidth || 0;
+      if (!totalWidth) return;
+      const currentTime = wavesurfer.getCurrentTime();
+      const left = (currentTime / duration) * totalWidth;
+      sharedPlayheadEl.style.left = `${left}px`;
+    };
+
+    const syncPreviewPlayback = (time) => {
+      if (!wavesurfer) return;
+      previewStartOffset = time;
+      const shouldRestart = (bgmFile && bgmSegments.length > 0) || sfxSegments.length > 0;
+      if (wavesurfer.isPlaying() && shouldRestart) {
+        startPreviewMix(time);
+      } else {
+        stopPreviewMix();
+      }
+    };
+
+    const syncPreviewTimeToVoice = (time) => {
+      if (!previewContext || !previewGain) return;
+      if (!wavesurfer || !wavesurfer.isPlaying()) return;
+      if (previewMixStartTime === null) return;
+      const expectedTime = previewMixStartTime + Math.max(0, time);
+      const drift = previewContext.currentTime - expectedTime;
+      if (Math.abs(drift) > 0.08) {
+        syncPreviewPlayback(time);
+      }
+    };
 
     const positionRecordingOverlay = () => {
       if (!recordingActive) return;
@@ -2117,6 +2252,8 @@
 
     const getPlaybackTime = () => (wavesurfer ? wavesurfer.getCurrentTime() : 0);
 
+    const getScrollLeft = () => (editorScrollContainer ? editorScrollContainer.scrollLeft : 0);
+
     const clearSelection = () => {
       selection = { start: null, end: null };
       if (activeRegion) {
@@ -2192,7 +2329,7 @@
       if (!duration) return;
       const clamped = clampTime(time);
       updatePlayheadUI(clamped);
-      previewStartOffset = clamped;
+      syncPreviewPlayback(clamped);
       wavesurfer.seekTo(clamped / duration);
     };
 
@@ -2205,6 +2342,10 @@
     const initWaveform = (blob, label, isAuto, preserveLayout = false) => {
       if (wavesurfer) {
         wavesurfer.destroy();
+      }
+      if (playheadRafId) {
+        cancelAnimationFrame(playheadRafId);
+        playheadRafId = null;
       }
       if (activeObjectUrl) {
         URL.revokeObjectURL(activeObjectUrl);
@@ -2223,15 +2364,8 @@
         bgmDuration = 0;
         previewBgmBuffer = null;
         previewSfxBuffers = new Map();
-        if (bgmWaveSurfer) {
-          bgmWaveSurfer.destroy();
-          bgmWaveSurfer = null;
-        }
-        if (bgmObjectUrl) {
-          URL.revokeObjectURL(bgmObjectUrl);
-          bgmObjectUrl = null;
-        }
-        bgmWaveformEl.style.width = "0px";
+        bgmWaveformBuffer = null;
+        bgmWaveformPeaks = null;
         bgmFileLabel.textContent = "BGM未読込";
         bgmPanel.classList.remove("bgm-loaded");
       }
@@ -2250,11 +2384,13 @@
         container: "#waveform",
         waveColor: "#4a9eff",
         progressColor: "#1e5aa8",
-        cursorColor: "transparent",
+        cursorColor: "#f0c000",
+        cursorWidth: 0,
         height: 160,
         normalize: true,
         pixelRatio: window.devicePixelRatio || 1,
         minPxPerSec: 50,
+        scrollParent: false,
         plugins: [regions],
       });
 
@@ -2263,16 +2399,26 @@
         wavesurfer.setVolume(1);
         const duration = wavesurfer.getDuration() || 1;
         durationEl.textContent = formatTime(duration);
-        const wrapWidth = waveformWrap.clientWidth || 1;
+        const wrapWidth = editorScrollContainer ? editorScrollContainer.clientWidth || 1 : waveformWrap.clientWidth || 1;
         zoomBase = Math.max(1, Math.floor(wrapWidth / duration));
         applyZoom(zoomBase);
         updateTimelineScale();
-        refreshTimelineWidth();
         const message = "再生はスペースキー";
         updateStatus(message);
         updatePlayheadUI(0);
         updatePlayControls();
         updateMixAvailability();
+        updateBgmWaveformWidth();
+        ensureSharedPlayhead();
+        updateSharedPlayhead();
+        if (playheadRafId) {
+          cancelAnimationFrame(playheadRafId);
+        }
+        const tick = () => {
+          updateSharedPlayhead();
+          playheadRafId = requestAnimationFrame(tick);
+        };
+        playheadRafId = requestAnimationFrame(tick);
         if (pendingSeekTime !== null) {
           seekToTime(pendingSeekTime);
           pendingSeekTime = null;
@@ -2285,6 +2431,8 @@
 
       wavesurfer.on("timeupdate", (time) => {
         updatePlayheadUI(time);
+        syncPreviewTimeToVoice(time);
+        updateSharedPlayhead();
       });
 
       wavesurfer.on("seek", (progress) => {
@@ -2292,10 +2440,8 @@
         const time = duration * progress;
         console.log("seek", time);
         updatePlayheadUI(time);
-        previewStartOffset = time;
-        if (wavesurfer.isPlaying()) {
-          startPreviewMix(time);
-        }
+        syncPreviewPlayback(time);
+        updateSharedPlayhead();
       });
 
       wavesurfer.on("click", (progress) => {
@@ -2303,14 +2449,25 @@
         const time = duration * progress;
         console.log("seek", time);
         updatePlayheadUI(time);
-        previewStartOffset = time;
+        syncPreviewPlayback(time);
+        updateSharedPlayhead();
         if (duration) {
           wavesurfer.seekTo(time / duration);
         }
       });
 
+      wavesurfer.on("interaction", () => {
+        updateSharedPlayhead();
+      });
+
       wavesurfer.on("audioprocess", (time) => {
         console.log("audioprocess", time);
+        syncPreviewTimeToVoice(time);
+        updateSharedPlayhead();
+      });
+
+      wavesurfer.on("zoom", () => {
+        refreshTimelineWidth();
       });
 
       wavesurfer.on("play", () => {
@@ -2329,6 +2486,7 @@
         console.log("finish", wavesurfer.getDuration());
         stopPreviewMix();
         updatePlayheadUI(wavesurfer.getDuration());
+        updateSharedPlayhead();
         updatePlayControls();
       });
 
@@ -2448,6 +2606,8 @@
         return;
       }
       console.log("deleteSelection range", { start, end, duration });
+      const savedZoom = zoomLevel;
+      const savedScrollLeft = getScrollLeft();
       const currentTime = getPlaybackTime();
       const wasPlaying = wavesurfer.isPlaying();
       let targetTime = currentTime;
@@ -2475,6 +2635,11 @@
         console.log("deleteSelection clearing selection + reload");
         clearSelection();
         await reloadAuto(targetTime, wasPlaying, "/api/auto", true);
+        applyZoom(savedZoom);
+        if (editorScrollContainer) {
+          editorScrollContainer.scrollLeft = savedScrollLeft;
+        }
+        seekToTime(targetTime);
       updateStatus("削除しました。");
       } catch (err) {
         console.error(err);
@@ -2549,9 +2714,10 @@
       });
     }
 
-    if (waveformWrap) {
-      waveformWrap.addEventListener("click", () => {
+    if (editorScrollContainer) {
+      editorScrollContainer.addEventListener("click", (event) => {
         if (recordingActive || hasVoiceAudio || wavesurfer) return;
+        if (event.target instanceof Element && event.target.closest(".zoom-controls")) return;
         if (recordBtn.disabled) {
           updateStatus("録音はこのブラウザで利用できません。", true);
           return;
@@ -2658,17 +2824,48 @@
 
 
 
-    if (waveformWrap) {
-      waveformWrap.addEventListener("wheel", (event) => {
-        if (!wavesurfer) return;
-        if (!event.ctrlKey) return;
-        event.preventDefault();
-        const direction = event.deltaY < 0 ? 1 : -1;
-        const step = Math.max(5, Math.round(zoomLevel * 0.1));
-        const next = Math.max(zoomBase, zoomLevel + direction * step);
-        applyZoom(next);
-      }, { passive: false });
-    }
+    // Pinch zoom handled at editor level.
+
+    const isTimelineClickTarget = (target) => {
+      if (!target) return false;
+      if (target.closest(".zoom-controls")) return false;
+      if (target.closest(".top-row")) return false;
+      if (target.closest(".recording-panel")) return false;
+      if (target.closest(".shortcuts-panel")) return false;
+      if (target.closest(".bgm-info")) return false;
+      if (target.closest(".bgm-segment, .sfx-segment")) return false;
+      return true;
+    };
+
+    const handleTimelineSeek = (event) => {
+      if (!wavesurfer) return;
+      if (recordingActive || busy || dragState) return;
+      const target = event.target instanceof Element ? event.target : event.target?.parentElement;
+      if (!isTimelineClickTarget(target)) return;
+      if (event.button !== 0) return;
+      const duration = wavesurfer.getDuration() || 0;
+      if (!duration) return;
+      const isWaveform = waveformWrap && target && waveformWrap.contains(target);
+      const isBgmArea = bgmTimelineWrap && target && bgmTimelineWrap.contains(target);
+      const isBgmSegment = target instanceof Element
+        ? target.closest(".bgm-segment, .sfx-segment")
+        : null;
+      const baseRect = isWaveform && waveformWrap
+        ? waveformWrap.getBoundingClientRect()
+        : (isBgmArea && bgmTimelineWrap)
+          ? bgmTimelineWrap.getBoundingClientRect()
+          : (editorScrollContainer || editorEl).getBoundingClientRect();
+      const scrollLeft = getScrollLeft();
+      if (isBgmSegment && bgmTimelineWrap) {
+        const segRect = isBgmSegment.getBoundingClientRect();
+        if (event.clientX >= segRect.left && event.clientX <= segRect.right) {
+          return;
+        }
+      }
+      const relativeX = event.clientX - baseRect.left + scrollLeft;
+      const time = clampTime(relativeX / timelinePxPerSec);
+      seekToTime(time);
+    };
 
     if (editorEl) {
       editorEl.addEventListener("mousemove", (event) => {
@@ -2678,44 +2875,35 @@
           showControls();
         }
       });
+      editorEl.addEventListener("click", (event) => {
+        handleTimelineSeek(event);
+        showControls();
+      }, true);
     }
 
-    if (waveformWrap) {
-      waveformWrap.addEventListener("mousemove", (event) => {
-        const rect = waveformWrap.getBoundingClientRect();
+    if (editorScrollContainer) {
+      editorScrollContainer.addEventListener("mousemove", (event) => {
+        const rect = editorScrollContainer.getBoundingClientRect();
         const nearTop = event.clientY - rect.top <= 32;
-        waveformWrap.classList.toggle("show-zoom", nearTop);
+        editorScrollContainer.classList.toggle("show-zoom", nearTop);
+      });
+      editorScrollContainer.addEventListener("mouseleave", () => {
+        editorScrollContainer.classList.remove("show-zoom");
       });
     }
 
-    if (waveformWrap) {
-      waveformWrap.addEventListener("mouseleave", () => {
-        waveformWrap.classList.remove("show-zoom");
-      });
-    }
-
-    if (waveformWrap) {
-      waveformWrap.addEventListener("scroll", () => {
-        if (syncingScroll) return;
-        syncingScroll = true;
-        bgmTimelineWrap.scrollLeft = waveformWrap.scrollLeft;
-        syncingScroll = false;
-        if (recordingActive) {
-          // overlay is fixed in corner; no position update needed
-        }
-      });
-    }
-
-    if (bgmTimelineWrap) {
-      bgmTimelineWrap.addEventListener("scroll", () => {
-        if (syncingScroll) return;
-        syncingScroll = true;
-        waveformWrap.scrollLeft = bgmTimelineWrap.scrollLeft;
-        syncingScroll = false;
-        if (recordingActive) {
-          // overlay is fixed in corner; no position update needed
-        }
-      });
+    if (editorEl) {
+      editorEl.addEventListener("wheel", (event) => {
+        if (!wavesurfer) return;
+        if (!event.ctrlKey) return;
+        event.preventDefault();
+        event.stopPropagation();
+        const direction = event.deltaY < 0 ? 1 : -1;
+        const step = Math.max(5, Math.round(zoomLevel * 0.1));
+        const next = Math.max(zoomBase, zoomLevel + direction * step);
+        applyZoom(next);
+        refreshTimelineWidth();
+      }, { passive: false });
     }
 
 
@@ -2829,38 +3017,41 @@
       mixGain.gain.value = 1;
       mixGain.connect(previewContext.destination);
       const offset = Math.max(0, offsetSeconds);
+      previewMixStartTime = previewContext.currentTime - offset;
       if (hasBgmPreview) {
         bgmSegments.forEach((segment) => {
           const segDuration = Math.max(0, segment.end - segment.start);
           if (!segDuration) return;
-          const bgmSource = previewContext.createBufferSource();
-          bgmSource.buffer = previewBgmBuffer;
-          const segmentGain = previewContext.createGain();
-          segmentGain.gain.value = Number(segment.volume) || bgmDefaultVolume;
-          segmentGain.connect(mixGain);
-          const fadeIn = Math.max(0, Math.min(segment.fadeIn, segDuration));
-          const fadeOut = Math.max(0, Math.min(segment.fadeOut, segDuration));
-          const fadeOutStart = Math.max(0, segDuration - fadeOut);
-          const segStart = segment.start;
-          if (segStart + segDuration <= offset) return;
-          const relativeStart = Math.max(0, segStart - offset);
-          const segOffset = Math.max(0, segment.offset + (offset - segStart > 0 ? offset - segStart : 0));
-          const playDuration = Math.max(0, segDuration - (offset - segStart > 0 ? offset - segStart : 0));
-          if (playDuration <= 0) return;
-          const now = previewContext.currentTime + relativeStart;
-          segmentGain.gain.setValueAtTime(segmentGain.gain.value, now);
-          if (fadeIn > 0) {
-            segmentGain.gain.setValueAtTime(0, now);
-            segmentGain.gain.linearRampToValueAtTime(segmentGain.gain.value, now + fadeIn);
-          }
-          if (fadeOut > 0 && playDuration > fadeOutStart) {
-            const fadeStart = now + Math.min(playDuration, fadeOutStart);
-            segmentGain.gain.setValueAtTime(segmentGain.gain.value, fadeStart);
-            segmentGain.gain.linearRampToValueAtTime(0, fadeStart + fadeOut);
-          }
-          bgmSource.connect(segmentGain);
-          bgmSource.start(now, segOffset, playDuration);
-          previewSources.push(bgmSource);
+            const bgmSource = previewContext.createBufferSource();
+            bgmSource.buffer = previewBgmBuffer;
+            const segmentGain = previewContext.createGain();
+            segmentGain.gain.value = Number(segment.volume) || bgmDefaultVolume;
+            segmentGain.connect(mixGain);
+            const fadeIn = Math.max(0, Math.min(segment.fadeIn, segDuration));
+            const fadeOut = Math.max(0, Math.min(segment.fadeOut, segDuration));
+            const fadeOutStart = Math.max(0, segDuration - fadeOut);
+            const segStart = segment.start;
+            if (segStart + segDuration <= offset) return;
+            const relativeStart = Math.max(0, segStart - offset);
+            const offsetIntoSegment = Math.max(0, offset - segStart);
+            const segOffset = Math.max(0, segment.offset + offsetIntoSegment);
+            const available = Math.max(0, segment.duration - segOffset);
+            const playDuration = Math.max(0, Math.min(segDuration - offsetIntoSegment, available));
+            if (playDuration <= 0) return;
+            const now = previewContext.currentTime + relativeStart;
+            segmentGain.gain.setValueAtTime(segmentGain.gain.value, now);
+            if (fadeIn > 0) {
+              segmentGain.gain.setValueAtTime(0, now);
+              segmentGain.gain.linearRampToValueAtTime(segmentGain.gain.value, now + fadeIn);
+            }
+            if (fadeOut > 0 && playDuration > fadeOutStart) {
+              const fadeStart = now + Math.min(playDuration, fadeOutStart);
+              segmentGain.gain.setValueAtTime(segmentGain.gain.value, fadeStart);
+              segmentGain.gain.linearRampToValueAtTime(0, fadeStart + fadeOut);
+            }
+            bgmSource.connect(segmentGain);
+            bgmSource.start(now, segOffset, playDuration);
+            previewSources.push(bgmSource);
         });
       }
       if (hasSfxPreview) {
